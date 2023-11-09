@@ -1,11 +1,5 @@
 from django.forms import ModelForm
 
-from typing import (
-    Any,
-    Dict,
-    #    List,
-)
-
 
 from aGit2Git.models import (
     Server,
@@ -16,9 +10,10 @@ from aGit2Git.models import (
 )
 
 from aGit2Git.autoGui import (
-    AUTO_GUI,
+    # AUTO_GUI,
     getFields,
 )
+
 
 class ServerForm(ModelForm):
     class Meta:

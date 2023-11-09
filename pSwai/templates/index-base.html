@@ -1,14 +1,14 @@
           {% if page_obj != None %}
-            {% if action != "/" %}
-              <div><a href="{{ action }}add/"> Add </a></div>
+            {% if action_clean != "/" %}
+              <div><a href="{{ action_clean }}add/"> Add a new  item to this list </a></div>
             {% endif %}
           {% include "index-paginate.html" %}
           <div>
-            <form action="{{ action }}" method="post">
+            <form action="{{ action_clean }}" method="post">
               {% csrf_token %}
               <input class="hidden" type="submit" name="dummy" value="dummy" style="z-index: -1; display: none;"/>
               <table class="index table table-sm table-hover table-bordered caption-top">
-                <caption>List of {{ action }}</caption>
+                <caption>List of {{ action_clean }}</caption>
                 <thead>
                   {% include "index-name-row.html" %}
                   {% include "index-filter-row.html" %}

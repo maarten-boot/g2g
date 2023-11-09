@@ -1,5 +1,10 @@
 import sys
 
+from typing import (
+    Any,
+    # Dict,
+)
+
 from django.template import (
     Context,
     Template,
@@ -25,18 +30,15 @@ from aGit2Git.forms import (
 )
 
 from aGit2Git.autoGui import (
-    AUTO_GUI,
+    # AUTO_GUI,
     getFields,
 )
 
 from aGit2Git import views
 
-from typing import (
-    Any,
-    Dict,
-)
 
 DEBUG = 0
+
 
 def urlGenOne(k):
     return [
@@ -63,7 +65,7 @@ def urlGenAll():
 
 
 def maxPerPagePaginate():
-    return 10
+    return 25
 
 
 def mapForm(fp: str, *args, **kwargs) -> Any:
@@ -96,11 +98,17 @@ def mapModel(fp):
 
 
 def mkDeleteLink(pk: str):
-    return "<input class='form-check-input' type='checkbox' value='" + f"{pk}" + "' name='action{{ action }}' id='action{{ action }}{{" + f"{pk}" + "}}'>"
+    return (
+        "<input class='form-check-input' type='checkbox' value='"
+        + f"{pk}"
+        + "' name='action{{ action_clean }}' id='action{{ action_clean }}{{"
+        + f"{pk}"
+        + "}}'>"
+    )
 
 
 def makeEditLink(pk: str, name: str):
-    return "<a href='{{ action }}edit/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
+    return "<a href='{{ action_clean }}edit/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
 
 
 def defaultFieldTemplate(name):
@@ -193,6 +201,8 @@ def makeIndexFields(fp, page_obj):
         for item in page_obj:
             fieldData = makeDictFromModel(item)
             fieldData["action"] = fp
+            fieldData["action_clean"] = fp.split("?")[0]
+
             fields = {}
             for k, v in xFields.items():
                 if k not in names:

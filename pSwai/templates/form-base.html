@@ -1,7 +1,7 @@
           {% if form != None %}
           {% if updating == True %}
           <div>
-            <a href="/{{ path.0}}/add/"> Add </a>
+            <a href="/{{ path.0}}/add/"> Add a new item </a>
           </div>
           {% endif %}
 
@@ -30,7 +30,7 @@
 
           {% if deleting != True %}
           {% if id != None %}
-            <div><a href="{{ delete }}">Delete</a></div>
+            <div><a href="{{ delete }}">Delete this item</a></div>
           {% endif %}
           {% endif %}
           {% endif %}

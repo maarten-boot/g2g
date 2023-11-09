@@ -3,7 +3,7 @@
                     {% for name in names %}
                       {% if name == "_" %}
                     <th scope="col">
-                      <input class="form-check-input" type="checkbox" name="action{{action}}" value="ALL" id="action{{action}}ALL-bot"/>
+                      <input class="form-check-input" type="checkbox" name="action{{action_clean}}" value="ALL" id="action{{action_clean}}ALL-bot"/>
                     </th>
                       {% else %}
                     <th scope="col">{{ name }}</th>

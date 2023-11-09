@@ -18,7 +18,6 @@ from aGit2Git.xauto import (
     mapForm,
     maxPerPagePaginate,
     makeIndexFields,
-    getFields,
     getFilterPrefix,
 )
 
@@ -26,6 +25,7 @@ from aGit2Git.autoGui import (
     AUTO_GUI as AG,
     getFields,
 )
+
 
 def empty(request):
     # this func should be totally generic all custom data must come frpm xauto
@@ -90,6 +90,7 @@ def startContext(request) -> Dict[str, Any]:
         "title": f"{app_name}{fp}",
         "navigation": navigation(),
         "action": fp,
+        "action_clean": fp.split("?")[0],
         "path": fp[1:].split("/"),
     }
     return context
@@ -100,7 +101,6 @@ def index(request, *args, **kwargs):
     fPrefix = getFilterPrefix()
     fp = request.get_full_path()
     app_name = __package__
-    # xForm = mapForm(fp, None)
 
     maxPerPage = maxPerPagePaginate()
     perPage = maxPerPage
