@@ -1,4 +1,20 @@
-# import sys
+import sys
+
+from django.template import (
+    Context,
+    Template,
+)
+
+from django.urls import path
+
+
+from aGit2Git.models import (
+    Server,
+    Script,
+    Url,
+    UrlPair,
+    CopyType,
+)
 
 from aGit2Git.forms import (
     ServerForm,
@@ -8,19 +24,11 @@ from aGit2Git.forms import (
     CopyTypeForm,
 )
 
-from aGit2Git.models import (
-    Server,
-    Script,
-    Url,
-    UrlPair,
-    CopyType,
-)
-from django.template import (
-    Context,
-    Template,
+from aGit2Git.autoGui import (
+    AUTO_GUI,
+    getFields,
 )
 
-from django.urls import path
 from aGit2Git import views
 
 from typing import (
@@ -28,108 +36,7 @@ from typing import (
     Dict,
 )
 
-
-AUTO_GUI = {
-    "navigation": {
-        "Server": "server",
-        "Script": "script",
-        "Url": "url",
-        "UrlPair": "urlpair",
-        "CopyType": "copytype",
-        "Admin": "admin",
-    },
-    "models": {
-        "Server": {
-            "nav": "server",
-            "fields": {
-                "name": "Name",
-                "description": "Description",
-                "url": "Url",
-                "internal": "Internal",
-            },
-            "filter": {
-                "name": "name",
-                "description": "description",
-                "url": "url",
-                "internal": "internal",
-            },
-        },
-        "Url": {
-            "nav": "url",
-            "fields": {
-                "name": "Name",
-                "description": "Description",
-                "server": "Server",
-                "internal": "Internal",
-                "url": "Url",
-                "branch": "Branch",
-            },
-            "filter": {
-                "name": "name",
-                "description": "description",
-                "server": "server__name",
-                "internal": "internal",
-                "url": "url",
-                "branch": "branch",
-            },
-        },
-        "Script": {
-            "nav": "script",
-            "fields": {
-                "name": "Name",
-                "description": "Description",
-                "repo": "Repository",
-            },
-            "filter": {
-                "name": "name",
-                "description": "description",
-                "repo": "repo__name",
-            },
-        },
-        "CopyType": {
-            "nav": "copytype",
-            "fields": {
-                "name": "Name",
-                "description": "Description",
-                "manual": "Manual",
-                "needTag": "NeedTag",
-                "script": "Script",
-            },
-            "filter": {
-                "name": "name",
-                "description": "description",
-                "manual": "manual",
-                "needTag": "needTag",
-                "script": "script__name",
-            },
-        },
-        "UrlPair": {
-            "nav": "urlpair",
-            "fields": {
-                "name": "Name",
-                "description": "Description",
-                "source": "Source",
-                "target": "Target",
-                "copyType": "CopyType",
-            },
-            "filter": {
-                "name": "name",
-                "description": "description",
-                "source": "source__name",
-                "target": "target__name",
-                "copyType": "copyType",
-            },
-        },
-    },
-}
-
-
-def getFields(modelName: str) -> Dict[str, str]:
-    k = "models"
-    if modelName in AUTO_GUI[k]:
-        return AUTO_GUI[k][modelName]
-    return {}
-
+DEBUG = 0
 
 def urlGenOne(k):
     return [
@@ -200,58 +107,46 @@ def defaultFieldTemplate(name):
     return "{{ " + f"{name}" + " }}"
 
 
-def getMyFields(fp):
-    def addFields(xFields, ff, skipList):
-        for k, v in ff.items():
-            if k in skipList:
-                continue
-            xFields[v] = defaultFieldTemplate(k)
+def addFields(xFields, ff, skipList):
+    for k, v in ff.items():
+        if k in skipList:
+            continue
+        xFields[v] = defaultFieldTemplate(k)
 
+
+def xFieldsDefault(ff):
+    xFields = {
+        "_": mkDeleteLink("id"),
+        "Name": makeEditLink("id", "name"),
+    }
+    addFields(xFields, ff, ["name"])
+    return xFields
+
+
+def getMyFields(fp):
     model = mapModel(fp)
     if not model:
         return {}
 
     ff = getFields(model.__name__).get("fields")
 
+    if DEBUG:
+        print(ff, file=sys.stderr)
+
     if fp.startswith("/server/"):
-        xFields = {
-            "_": mkDeleteLink("id"),
-            "Name": makeEditLink("id", "name"),
-        }
-        addFields(xFields, ff, ["name"])
-        return xFields
+        return xFieldsDefault(ff)
 
     if fp.startswith("/script/"):
-        xFields = {
-            "_": mkDeleteLink("id"),
-            "Name": makeEditLink("id", "name"),
-        }
-        addFields(xFields, ff, ["name"])
-        return xFields
+        return xFieldsDefault(ff)
 
     if fp.startswith("/url/"):
-        xFields = {
-            "_": mkDeleteLink("id"),
-            "Name": makeEditLink("id", "name"),
-        }
-        addFields(xFields, ff, ["name"])
-        return xFields
+        return xFieldsDefault(ff)
 
     if fp.startswith("/urlpair/"):
-        xFields = {
-            "_": mkDeleteLink("id"),
-            "Name": makeEditLink("id", "name"),
-        }
-        addFields(xFields, ff, ["name"])
-        return xFields
+        return xFieldsDefault(ff)
 
     if fp.startswith("/copytype/"):
-        xFields = {
-            "_": mkDeleteLink("id"),
-            "Name": makeEditLink("id", "name"),
-        }
-        addFields(xFields, ff, ["name"])
-        return xFields
+        return xFieldsDefault(ff)
 
     return {}
 

@@ -5,9 +5,15 @@ from typing import (
     #    List,
 )
 
+from django.shortcuts import (
+    render,
+    redirect,
+)
+
+from django.core.paginator import Paginator
+
 
 from aGit2Git.xauto import (
-    AUTO_GUI as AG,
     mapModel,
     mapForm,
     maxPerPagePaginate,
@@ -16,13 +22,10 @@ from aGit2Git.xauto import (
     getFilterPrefix,
 )
 
-from django.shortcuts import (
-    render,
-    redirect,
+from aGit2Git.autoGui import (
+    AUTO_GUI as AG,
+    getFields,
 )
-
-from django.core.paginator import Paginator
-
 
 def empty(request):
     # this func should be totally generic all custom data must come frpm xauto

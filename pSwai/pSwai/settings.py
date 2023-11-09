@@ -29,7 +29,7 @@ environ.Env.read_env(env_file=env_file)
 # ------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-ENVIRONMENT = env.str("ENVIRONMENT") # switch between prod and dev
+ENVIRONMENT = env.str("ENVIRONMENT")  # switch between prod and dev
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = tuple(env.list("DJANGO_ALLOWED_HOSTS", default=[]))
@@ -265,5 +265,6 @@ LOGGING["loggers"].update(MY_LOGGERS)
 
 class CustomFormRenderer(TemplatesSetting):
     form_template_name = "form_snippet.html"
+
 
 FORM_RENDERER = "pSwai.settings.CustomFormRenderer"
