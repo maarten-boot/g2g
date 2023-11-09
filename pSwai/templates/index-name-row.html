@@ -1,0 +1,12 @@
+                  {# ------- name row (later sort up down )--------- #}
+                  <tr>
+                    {% for name in names %}
+                      {% if name == "_" %}
+                    <th scope="col">
+                      <input class="form-check-input" type="checkbox" name="action{{action}}" value="ALL" id="action{{action}}ALL-bot"/>
+                    </th>
+                      {% else %}
+                    <th scope="col">{{ name }}</th>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>

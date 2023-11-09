@@ -1,0 +1,11 @@
+psycopg2-binary
+python-ldap
+gunicorn
+Django
+Django-ldap
+django_auth_ldap
+python-dotenv
+python-dotenv[cli]
+python-environ
+black
+pylama

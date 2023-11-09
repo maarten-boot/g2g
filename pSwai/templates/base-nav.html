@@ -1,0 +1,6 @@
+          <nav class="nav flex-sm-column">
+            <a class="nav-link" href="{% url 'index' %}">Home</a>
+            {% for item in navigation %}
+              <a class="nav-link" href="/{{ item.url }}">{{ item.label }}</a>
+            {% endfor %}
+          </nav>

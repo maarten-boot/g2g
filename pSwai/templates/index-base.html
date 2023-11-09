@@ -1,0 +1,37 @@
+          {% if page_obj != None %}
+            {% if action != "/" %}
+              <div><a href="{{ action }}add/"> Add </a></div>
+            {% endif %}
+          {% include "index-paginate.html" %}
+          <div>
+            <form action="{{ action }}" method="post">
+              {% csrf_token %}
+              <input class="hidden" type="submit" name="dummy" value="dummy" style="z-index: -1; display: none;"/>
+              <table class="index table table-sm table-hover table-bordered caption-top">
+                <caption>List of {{ action }}</caption>
+                <thead>
+                  {% include "index-name-row.html" %}
+                  {% include "index-filter-row.html" %}
+                </thead>
+                <tbody class="table-group-divider">
+                {% for row in data %}
+                  {# ------- a data row --------- #}
+                  <tr>
+                    {% for k,v in row.items %}
+                      {% if k == "_" %}
+                    <td>{{ v|safe}}</td>
+                      {% else %}
+                    <td>{{ v|safe}}</td>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+                </tbody>
+                <tfoot class="table-group-divider">
+                  {% include "index-name-row.html" %}
+                </tfoot>
+              </table>
+            </form>
+          </div>
+          {% include "index-paginate.html" %}
+          {% endif %}

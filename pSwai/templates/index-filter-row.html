@@ -1,0 +1,12 @@
+                  {# ------- Filter row --------- #}
+                  <tr>
+                    {% for k,v in filter.items %}
+                      {% if k == "filter-_" %}
+                    <th scope="col"></th>
+                      {% else %}
+                    <th scope="col">
+                      <input class="input-filter-text" type="text" name="{{ k }}" value="{{ v|default_if_none:"" }}" id="{{ k }}" onchange="myFunction()" />
+                    </th>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
