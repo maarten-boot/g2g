@@ -16,3 +16,21 @@ We currently have:
 
 ### TODO
  - `Run`: trigger a manual copy action with parameters.
+
+## Index
+
+All index pages can search and filter on each fields using the input fields under the name row.
+
+### filter
+
+Filter fields are defind in xauth per model, fk fields use <fieldname>__name to seach on the fk name.
+
+All filter fields currently use only icontains.
+
+## Add/Edit/Delete
+
+The form for defining instances is reused for edit and delete (as readonly)
+
+## Layout
+
+The current layout is based on bootstrap 5.3.x , but is very simple otherwise while still developing.
