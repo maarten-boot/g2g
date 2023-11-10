@@ -41,7 +41,7 @@ def navigation():
     rr = []
     for k, v in zz.items():
         data = {
-            "url": app_name + "/" + v + "/",
+            "url": "/" + app_name + "/" + v + "/",
             "label": k,
         }
         rr.append(data)
@@ -172,12 +172,18 @@ def form(request, *args, **kwargs):
 
     if request.method == "POST":
         pData = request.POST
+
+        # delete
         if "delete" in pData:
             instance = model.objects.get(id=pData["delete"])
             instance.delete()
             fp3 = fp.replace("/delete/", "/")
             fp3 = fp3.replace(pData["delete"], "")
             return redirect(f"{fp3}")
+
+        # edit or add
+        if "_save" in pData:
+            pass
 
         if model:
             xForm = mapForm(app_name, fp, pData, instance=mData)
@@ -187,18 +193,26 @@ def form(request, *args, **kwargs):
         if xForm.is_valid():
             item = xForm.save()
             if k not in kwargs:
-                fp2 = fp.replace("/add/", "/edit/")
-                return redirect(f"{fp2}{item.id}")
+                if "_addanother" in pData:
+                    return redirect(f"{fp}")
+                if "_continue" in pData or "_save" in pData:
+                    fp2 = fp.replace("/add/", "/edit/")
+                    return redirect(f"{fp2}{item.id}")
+            else:
+                if "_addanother" in pData:
+                    fp2 = fp.split("/edit/")[0] + "/add/"
+                    return redirect(f"{fp2}")
+
         xId = kwargs[k]
 
     path = fp[1:].split("/")
 
     deleting = False
-    if "/delete/" in fp:
+    if fp.startswith(f"/{path[0]}/{path[1]}/delete/"):
         deleting = True
 
     updating = False
-    if "/edit/" in fp:
+    if fp.startswith(f"/{path[0]}/{path[1]}/edit/"):
         updating = True
 
     c1 = startContext(request)

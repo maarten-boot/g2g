@@ -1,7 +1,5 @@
           {% if form != None %}
-          {% if updating == True %}
-            {% include "add-div.html" %}
-          {% endif %}
+          {% include "add-div.html" %}
 
           <form action="{{ action }}" method="post">
             {% csrf_token %}
@@ -16,7 +14,8 @@
               {{ form.as_table }}
             </table>
             </fieldset>
-
+            <br />
+            <fieldset>
           {% if deleting != True %}
           <div class="submit-row">
             <input type="submit" value="Save" class="default" name="_save">
@@ -30,12 +29,16 @@
               <input type="submit" value="Delete" />
             </div>
           {% endif %}
+            </fieldset>
           </form>
 
           {% if deleting != True %}
           {% if id != None %}
           <div>
-             <a href="{{ delete }}">Delete </a> this {{ path.1 }}
+            <br />
+            <div style="margin: 2 2;">
+              <a href="{{ delete }}">Delete </a> this {{ path.1 }}
+            </div>
           </div>
           {% endif %}
           {% endif %}
