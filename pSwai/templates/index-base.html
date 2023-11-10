@@ -1,6 +1,6 @@
           {% if page_obj != None %}
             {% if action_clean != "/" %}
-              <div><a href="{{ action_clean }}add/"> Add a new  item to this list </a></div>
+              {% include "add-div.html" %}
             {% endif %}
           {% include "index-paginate.html" %}
           <div>
@@ -19,9 +19,9 @@
                   <tr>
                     {% for k,v in row.items %}
                       {% if k == "_" %}
-                    <td>{{ v|safe}}</td>
+                    <td class="col-sm-auto">{{ v|safe}}</td>
                       {% else %}
-                    <td>{{ v|safe}}</td>
+                    <td class="col-sm-auto">{{ v|safe}}</td>
                       {% endif %}
                     {% endfor %}
                   </tr>

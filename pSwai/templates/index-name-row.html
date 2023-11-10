@@ -1,12 +1,14 @@
-                  {# ------- name row (later sort up down )--------- #}
-                  <tr>
-                    {% for name in names %}
-                      {% if name == "_" %}
-                    <th scope="col">
-                      <input class="form-check-input" type="checkbox" name="action{{action_clean}}" value="ALL" id="action{{action_clean}}ALL-bot"/>
-                    </th>
-                      {% else %}
-                    <th scope="col">{{ name }}</th>
-                      {% endif %}
-                    {% endfor %}
-                  </tr>
+{# ------- name row (later sort up down )--------- #}
+<tr>
+  {% for name in names %}
+    {% if name == "_" %}
+  <th scope="col" class="col-sm-auto">
+    <input class="form-check-input" type="checkbox" name="action{{action_clean}}" value="ALL" id="action{{action_clean}}ALL-bot"/>
+  </th>
+    {% else %}
+  <th scope="col" class="col-sm-auto">
+    {{ name }}
+  </th>
+    {% endif %}
+  {% endfor %}
+</tr>

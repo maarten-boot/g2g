@@ -32,68 +32,75 @@ from aGit2Git.forms import (
 from aGit2Git.autoGui import (
     # AUTO_GUI,
     getFields,
+    getNavNames,
 )
 
 from aGit2Git import views
 
-
+# maxPerPagePaginate
 DEBUG = 0
 
 
-def urlGenOne(k):
-    return [
-        path(f"{k}/", views.index, name=f"{k}"),
-        path(f"{k}/add/", views.form, name=f"{k}_add"),
-        path(f"{k}/edit/<uuid:id>", views.form, name=f"{k}_edit"),
-        path(f"{k}/delete/<uuid:id>", views.form, name=f"{k}_delete"),
+def urlGenOne(app, k):
+    ll = [
+        path(f"{app}/{k}/", views.index, name=f"{app}_{k}"),
+        path(f"{app}/{k}/add/", views.form, name=f"{app}_{k}_add"),
+        path(f"{app}/{k}/edit/<uuid:id>", views.form, name=f"{app}_{k}_edit"),
+        path(f"{app}/{k}/delete/<uuid:id>", views.form, name=f"{app}_{k}_delete"),
     ]
 
+    print(ll, file=sys.stderr)
+    return ll
 
-def urlGenAll():
-    xList = [
-        "server",
-        "script",
-        "url",
-        "urlpair",
-        "copytype",
-    ]
+
+def urlGenAll(app):
+    xList = getNavNames()
     urlPatternList = []
     for item in xList:
-        z = urlGenOne(item)
+        z = urlGenOne(app, item)
         urlPatternList += z
+
+    print(urlPatternList, file=sys.stderr)
     return urlPatternList
 
 
-def maxPerPagePaginate():
-    return 25
+def mapForm(app: str, fp: str, *args, **kwargs) -> Any:
+    xList = getNavNames()
+    for name in xList:
+        pass
 
-
-def mapForm(fp: str, *args, **kwargs) -> Any:
-    if fp.startswith("/server/"):
+    if fp.startswith(f"/{app}/server/"):
         return ServerForm(*args, **kwargs)
-    if fp.startswith("/script/"):
+    if fp.startswith(f"/{app}/script/"):
         return ScriptForm(*args, **kwargs)
-    if fp.startswith("/url/"):
+    if fp.startswith(f"/{app}/url/"):
         return UrlForm(*args, **kwargs)
-    if fp.startswith("/urlpair/"):
+    if fp.startswith(f"/{app}/urlpair/"):
         return UrlPairForm(*args, **kwargs)
-    if fp.startswith("/copytype/"):
+    if fp.startswith(f"/{app}/copytype/"):
         return CopyTypeForm(*args, **kwargs)
 
     return None
 
 
-def mapModel(fp):
-    if fp.startswith("/server/"):
+def mapModel(app: str, fp):
+    xList = getNavNames()
+    for name in xList:
+        pass
+
+    print(app, fp, file=sys.stderr)
+
+    if fp.startswith(f"/{app}/server/"):
         return Server
-    if fp.startswith("/script/"):
+    if fp.startswith(f"/{app}/script/"):
         return Script
-    if fp.startswith("/url/"):
+    if fp.startswith(f"/{app}/url/"):
         return Url
-    if fp.startswith("/urlpair/"):
+    if fp.startswith(f"/{app}/urlpair/"):
         return UrlPair
-    if fp.startswith("/copytype/"):
+    if fp.startswith(f"/{app}/copytype/"):
         return CopyType
+
     return None
 
 
@@ -108,7 +115,8 @@ def mkDeleteLink(pk: str):
 
 
 def makeEditLink(pk: str, name: str):
-    return "<a href='{{ action_clean }}edit/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
+    what = "edit"
+    return "<a href='{{ action_clean }}" + what + "/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
 
 
 def defaultFieldTemplate(name):
@@ -131,30 +139,18 @@ def xFieldsDefault(ff):
     return xFields
 
 
-def getMyFields(fp):
-    model = mapModel(fp)
+def getMyFields(app, fp):
+    model = mapModel(app, fp)
+    print(model, file=sys.stderr)
     if not model:
         return {}
 
     ff = getFields(model.__name__).get("fields")
-
-    if DEBUG:
-        print(ff, file=sys.stderr)
-
-    if fp.startswith("/server/"):
-        return xFieldsDefault(ff)
-
-    if fp.startswith("/script/"):
-        return xFieldsDefault(ff)
-
-    if fp.startswith("/url/"):
-        return xFieldsDefault(ff)
-
-    if fp.startswith("/urlpair/"):
-        return xFieldsDefault(ff)
-
-    if fp.startswith("/copytype/"):
-        return xFieldsDefault(ff)
+    print(ff, file=sys.stderr)
+    xList = getNavNames()
+    for name in xList:
+        if fp.startswith(f"/{app}/{name}/"):
+            return xFieldsDefault(ff)
 
     return {}
 
@@ -184,7 +180,7 @@ def getFilterPrefix():
     return "filter-"
 
 
-def makeIndexFields(fp, page_obj):
+def makeIndexFields(app, fp, page_obj):
     # this func should be totally generic
 
     def test1(tempString, item):
@@ -193,7 +189,8 @@ def makeIndexFields(fp, page_obj):
         html = t.render(c)
         return html
 
-    xFields = getMyFields(fp)
+    xFields = getMyFields(app, fp)
+    print(xFields, file=sys.stderr)
 
     data = []
     names = []

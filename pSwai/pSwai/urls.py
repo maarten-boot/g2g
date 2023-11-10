@@ -25,7 +25,10 @@ from django.conf import settings
 
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
+from aGit2Git import views
+
 urlpatterns = [
+    path("", views.index, name="index"),
     path("", include("aGit2Git.urls")),
     path("admin/", admin.site.urls, name="admin"),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

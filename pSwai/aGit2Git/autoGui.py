@@ -1,18 +1,18 @@
 from typing import (
     # Any,
     Dict,
-    #    List,
+    List,
 )
 
 
 AUTO_GUI = {
+    "max_per_page": 25,
     "navigation": {
         "Server": "server",
         "Url": "url",
         "Script": "script",
         "CopyType": "copytype",
         "UrlPair": "urlpair",
-        "Admin": "admin",
     },
     "models": {
         "Server": {
@@ -100,8 +100,25 @@ AUTO_GUI = {
 }
 
 
+def getNavNames() -> List[str]:
+    ret = []
+    k = "models"
+    for name, v in AUTO_GUI[k].items():
+        if "nav" not in v:
+            continue
+        ret.append(v["nav"])
+    return ret
+
+
 def getFields(modelName: str) -> Dict[str, str]:
     k = "models"
     if modelName in AUTO_GUI[k]:
         return AUTO_GUI[k][modelName]
     return {}
+
+
+def maxPerPagePaginate() -> int:
+    k = "max_per_page"
+    if k in AUTO_GUI:
+        return int(AUTO_GUI[k])
+    return 15

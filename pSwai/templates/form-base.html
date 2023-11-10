@@ -1,8 +1,6 @@
           {% if form != None %}
           {% if updating == True %}
-          <div>
-            <a href="/{{ path.0}}/add/"> Add a new item </a>
-          </div>
+            {% include "add-div.html" %}
           {% endif %}
 
           <form action="{{ action }}" method="post">
@@ -20,17 +18,25 @@
             </fieldset>
 
           {% if deleting != True %}
-            <input type="submit" value="Submit" />
+          <div class="submit-row">
+            <input type="submit" value="Save" class="default" name="_save">
+            <input type="submit" value="Save and add another" name="_addanother">
+            <input type="submit" value="Save and continue editing" name="_continue">
+          </div>
           {% else %}
-            <div><b>Are you sure you want to delete this record</b></div>
-            <input type="hidden" name="delete" value="{{ id }}" />
-            <input type="submit" value="Delete" />
+            <div>
+              <b>Are you sure you want to delete this record</b>
+              <input type="hidden" name="delete" value="{{ id }}" />
+              <input type="submit" value="Delete" />
+            </div>
           {% endif %}
           </form>
 
           {% if deleting != True %}
           {% if id != None %}
-            <div><a href="{{ delete }}">Delete this item</a></div>
+          <div>
+             <a href="{{ delete }}">Delete </a> this {{ path.1 }}
+          </div>
           {% endif %}
           {% endif %}
           {% endif %}

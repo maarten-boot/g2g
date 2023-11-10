@@ -1,4 +1,5 @@
-# import sys
+import sys
+
 from typing import (
     Any,
     Dict,
@@ -16,7 +17,7 @@ from django.core.paginator import Paginator
 from aGit2Git.xauto import (
     mapModel,
     mapForm,
-    maxPerPagePaginate,
+    # maxPerPagePaginate,
     makeIndexFields,
     getFilterPrefix,
 )
@@ -24,6 +25,7 @@ from aGit2Git.xauto import (
 from aGit2Git.autoGui import (
     AUTO_GUI as AG,
     getFields,
+    maxPerPagePaginate,
 )
 
 
@@ -34,12 +36,12 @@ def empty(request):
 
 def navigation():
     # this func should be totally generic all custom data must come frpm xauto
-
+    app_name = __package__
     zz = AG["navigation"]
     rr = []
     for k, v in zz.items():
         data = {
-            "url": v + "/",
+            "url": app_name + "/" + v + "/",
             "label": k,
         }
         rr.append(data)
@@ -78,6 +80,8 @@ def getIndexData(model, pData):
 
         zArgs[f"{hint}__icontains"] = v
 
+    print(zArgs, file=sys.stderr)
+
     return model.objects.filter(**zArgs)
 
 
@@ -85,9 +89,9 @@ def startContext(request) -> Dict[str, Any]:
     # this func should be totally generic all custom data must come frpm xauto
 
     fp = request.get_full_path()
-    app_name = __package__
+    # app_name = __package__
     context = {
-        "title": f"{app_name}{fp}",
+        "title": f"{fp}",
         "navigation": navigation(),
         "action": fp,
         "action_clean": fp.split("?")[0],
@@ -102,6 +106,8 @@ def index(request, *args, **kwargs):
     fp = request.get_full_path()
     app_name = __package__
 
+    # print(fPrefix, fp, app_name,file=sys.stderr)
+
     maxPerPage = maxPerPagePaginate()
     perPage = maxPerPage
 
@@ -111,15 +117,18 @@ def index(request, *args, **kwargs):
 
     page_obj = None
     xNames = {}
-    model = mapModel(fp)
+    model = mapModel(app_name, fp)
+    print(model, file=sys.stderr)
+
     if model:
         item_list = getIndexData(model, pData)
+        print(item_list, file=sys.stderr)
         paginator = Paginator(item_list, perPage)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
         xNames = getFields(model.__name__).get("fields")
 
-    names, data = makeIndexFields(fp, page_obj)
+    names, data = makeIndexFields(app_name, fp, page_obj)
 
     fDict = {}
     fDict[f"{fPrefix}_"] = None
@@ -138,6 +147,7 @@ def index(request, *args, **kwargs):
         "filter": fDict,
     }
     context = c1 | c2  # merge the dicts
+    print(context, file=sys.stderr)
     return render(request, f"{app_name}/index.html", context)
 
 
@@ -147,7 +157,7 @@ def form(request, *args, **kwargs):
     # used for add, edit, delete
     fp = request.get_full_path()
     app_name = __package__
-    xForm = mapForm(fp, None)
+    xForm = mapForm(app_name, fp, None)
 
     # if we have a id, fetch the data
     k = "id"
@@ -155,10 +165,10 @@ def form(request, *args, **kwargs):
     model = None
     if k in kwargs:
         xId = kwargs[k]
-        model = mapModel(fp)
+        model = mapModel(app_name, fp)
         if model:
             mData = model.objects.get(pk=kwargs[k])
-            xForm = mapForm(fp, instance=mData)
+            xForm = mapForm(app_name, fp, instance=mData)
 
     if request.method == "POST":
         pData = request.POST
@@ -170,9 +180,9 @@ def form(request, *args, **kwargs):
             return redirect(f"{fp3}")
 
         if model:
-            xForm = mapForm(fp, pData, instance=mData)
+            xForm = mapForm(app_name, fp, pData, instance=mData)
         else:
-            xForm = mapForm(fp, pData)
+            xForm = mapForm(app_name, fp, pData)
 
         if xForm.is_valid():
             item = xForm.save()
@@ -195,7 +205,7 @@ def form(request, *args, **kwargs):
     c2 = {
         "form": xForm,
         "id": xId,
-        "delete": "/".join(["", path[0], "delete", str(xId)]),
+        "delete": "/".join(["", path[0], path[1], "delete", str(xId)]),
         "deleting": deleting,
         "updating": updating,
     }
