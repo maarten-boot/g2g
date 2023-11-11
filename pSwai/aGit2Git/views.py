@@ -14,29 +14,32 @@ from django.shortcuts import (
 from django.core.paginator import Paginator
 
 
-from aGit2Git.xauto import (
+from aGit2Git.autoGui import AUTO_GUI
+
+from appAutoGui.xauto import (
     mapModel,
     mapForm,
     makeIndexFields,
     getFilterPrefix,
-)
-
-from aGit2Git.autoGui import (
     getFields,
     maxPerPagePaginate,
     navigation,
 )
 
 
-def empty(request):
+def _getAG():
+    return AUTO_GUI
+
+
+def _empty(request):
     # this func should be totally generic all custom data must come frpm xauto
     return redirect("index")
 
 
-def getFilterHint(modelName, fieldName):
+def _getFilterHint(AUTO_GUI, modelName, fieldName):
     # this func should be totally generic all custom data must come frpm xauto
 
-    fields = getFields(modelName)
+    fields = getFields(AUTO_GUI, modelName)
     k = "filter"
 
     if k not in fields:
@@ -48,36 +51,35 @@ def getFilterHint(modelName, fieldName):
     return fields[k][fieldName]
 
 
-def getIndexData(model, pData):
-    # this func should be totally generic all custom data must come frpm xauto
-    fp = getFilterPrefix()
+def _doOneIndexItem(AUTO_GUI, model, k, v, prefix, zArgs: Dict[str, str]) -> None:
+    if not v:
+        return
+
+    if not k.startswith(prefix):
+        return
+
+    k2 = k.split(prefix)[1]
+    hint = _getFilterHint(AUTO_GUI, model.__name__, k2)
+    if hint is None:
+        return
+
+    zArgs[f"{hint}__icontains"] = v
+
+
+def _getIndexData(model, pData):
+    prefix = getFilterPrefix()
     zArgs = {}
     for k, v in pData.items():
-        if not v:
-            continue
-        if not k.startswith(fp):
-            continue
-
-        k2 = k.split(fp)[1]
-        hint = getFilterHint(model.__name__, k2)
-        if hint is None:
-            continue
-
-        zArgs[f"{hint}__icontains"] = v
-
-    # print(zArgs, file=sys.stderr)
+        _doOneIndexItem(AUTO_GUI, model, k, v, prefix, zArgs)
 
     return model.objects.filter(**zArgs)
 
 
-def startContext(request) -> Dict[str, Any]:
-    # this func should be totally generic all custom data must come frpm xauto
-
+def _startContext(request) -> Dict[str, Any]:
     fp = request.get_full_path()
-    # app_name = __package__
     context = {
         "title": f"{fp}",
-        "navigation": navigation(),
+        "navigation": navigation(AUTO_GUI, __package__),
         "action": fp,
         "action_clean": fp.split("?")[0],
         "path": fp[1:][:-1].split("/"),
@@ -86,14 +88,11 @@ def startContext(request) -> Dict[str, Any]:
 
 
 def index(request, *args, **kwargs):
-    # this func should be totally generic all custom data must come frpm xauto
     fPrefix = getFilterPrefix()
     fp = request.get_full_path()
     app_name = __package__
 
-    # print(fPrefix, fp, app_name,file=sys.stderr)
-
-    maxPerPage = maxPerPagePaginate()
+    maxPerPage = maxPerPagePaginate(AUTO_GUI)
     perPage = maxPerPage
 
     pData = {}
@@ -102,18 +101,17 @@ def index(request, *args, **kwargs):
 
     page_obj = None
     xNames = {}
-    model = mapModel(app_name, fp)
-    # print(model, file=sys.stderr)
+    model = mapModel(AUTO_GUI, app_name, fp)
 
     if model:
-        item_list = getIndexData(model, pData)
+        item_list = _getIndexData(model, pData)
         # print(item_list, file=sys.stderr)
         paginator = Paginator(item_list, perPage)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
-        xNames = getFields(model.__name__).get("fields")
+        xNames = getFields(AUTO_GUI, model.__name__).get("fields")
 
-    names, data = makeIndexFields(app_name, fp, page_obj)
+    names, data = makeIndexFields(AUTO_GUI, app_name, fp, page_obj)
 
     fDict = {}
     fDict[f"{fPrefix}_"] = None
@@ -122,7 +120,7 @@ def index(request, *args, **kwargs):
         v = pData.get(k)
         fDict[k] = v
 
-    c1 = startContext(request)
+    c1 = _startContext(request)
     c2 = {
         "perPage": perPage,
         "page_obj": page_obj,
@@ -132,7 +130,6 @@ def index(request, *args, **kwargs):
         "filter": fDict,
     }
     context = c1 | c2  # merge the dicts
-    # print(context, file=sys.stderr)
     return render(request, f"{app_name}/index.html", context)
 
 
@@ -163,40 +160,37 @@ def _doValidForm(xForm, pData, fp, k, **kwargs):
 
 # @login_required
 def form(request, *args, **kwargs):
-    # this func should be totally generic all custom data must come frpm xauto
     # used for add, edit, delete
     fp = request.get_full_path()
     app_name = __package__
-    xForm = mapForm(app_name, fp, None)
+    xForm = mapForm(AUTO_GUI, app_name, fp, None)
 
-    # if we have a id, fetch the data
     k = "id"
     xId = None
     model = None
     if k in kwargs:
+        # if we have a id, fetch the data
         xId = kwargs[k]
-        model = mapModel(app_name, fp)
+        model = mapModel(AUTO_GUI, app_name, fp)
         if model:
             mData = model.objects.get(pk=kwargs[k])
-            xForm = mapForm(app_name, fp, instance=mData)
+            xForm = mapForm(AUTO_GUI, app_name, fp, instance=mData)
 
     if request.method == "POST":
         pData = request.POST
 
-        # delete
         if "delete" in pData:
             return _deleteAndRedirect(model, pData, fp)
 
         if model:
-            xForm = mapForm(app_name, fp, pData, instance=mData)
+            xForm = mapForm(AUTO_GUI, app_name, fp, pData, instance=mData)
         else:
-            xForm = mapForm(app_name, fp, pData)
+            xForm = mapForm(AUTO_GUI, app_name, fp, pData)
 
         if xForm.is_valid():
             resp = _doValidForm(xForm, pData, fp, k, **kwargs)
             if resp:
                 return resp
-        # xId = kwargs[k]
 
     path = fp[1:].split("/")
 
@@ -208,7 +202,7 @@ def form(request, *args, **kwargs):
     if fp.startswith(f"/{path[0]}/{path[1]}/edit/"):
         updating = True
 
-    c1 = startContext(request)
+    c1 = _startContext(request)
     c2 = {
         "form": xForm,
         "id": xId,

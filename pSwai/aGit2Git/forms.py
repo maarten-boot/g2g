@@ -9,41 +9,39 @@ from aGit2Git.models import (
     CopyType,
 )
 
-from aGit2Git.autoGui import (
-    getFields,
-)
+from aGit2Git.autoGui import AUTO_GUI
+from appAutoGui.xauto import getFields
+
+
+def _gf(model):
+    return getFields(AUTO_GUI, model.__name__).get("fields").keys()
 
 
 class ServerForm(ModelForm):
     class Meta:
         model = Server
-        template_name = "aaa"
-        fields = getFields(model.__name__).get("fields").keys()
+        fields = _gf(model)
 
 
 class ScriptForm(ModelForm):
     class Meta:
         model = Script
-        template_name = "aaa"
-        fields = getFields(model.__name__).get("fields").keys()
+        fields = _gf(model)
 
 
 class UrlForm(ModelForm):
     class Meta:
         model = Url
-        template_name = "aaa"
-        fields = getFields(model.__name__).get("fields").keys()
+        fields = _gf(model)
 
 
 class CopyTypeForm(ModelForm):
     class Meta:
         model = CopyType
-        template_name = "aaa"
-        fields = getFields(model.__name__).get("fields").keys()
+        fields = _gf(model)
 
 
 class UrlPairForm(ModelForm):
     class Meta:
         model = UrlPair
-        template_name = "aaa"
-        fields = getFields(model.__name__).get("fields").keys()
+        fields = _gf(model)
