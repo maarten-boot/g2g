@@ -34,3 +34,9 @@ The form for defining instances is reused for edit and delete (as readonly)
 ## Layout
 
 The current layout is based on bootstrap 5.3.x , but is very simple otherwise while still developing.
+
+## Generic Views
+
+### AUTO_GUI
+Each app can define a file `autoGui.py` where hints are stored for the `genericForm` and `genericIndex`.
+This alows for a very fast insert/update/delete/search to be implemented per app (based on the models used) that can still be overridden if needed.
