@@ -10,7 +10,6 @@ from aGit2Git.models import (
 )
 
 from aGit2Git.autoGui import (
-    # AUTO_GUI,
     getFields,
 )
 

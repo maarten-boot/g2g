@@ -1,10 +1,19 @@
-          <nav class="nav flex-sm-column nav-pills flex-sm-row">
-            <a class="nav-link" href="{% url 'index' %}">Home</a>
-            {% for item in navigation %}
-            {% if action_clean == item.url %}
-              <a class="nav-link active" href="{{ item.url }}">{{ item.label }}</a>
-            {% else %}
-              <a class="nav-link" href="{{ item.url }}">{{ item.label }}</a>
-            {% endif %}
-            {% endfor %}
-          </nav>
+<nav class="nav flex-sm-column nav-pills flex-sm-row">
+  {% if action_clean == "/" %}
+  <a class="nav-link active" href="{% url 'index' %}">Home</a>
+  {% else %}
+  <a class="nav-link" href="{% url 'index' %}">Home</a>
+  {% endif %}
+
+  {% for item in navigation %}
+  {% if action_clean == item.url %}
+    <a class="nav-link active" href="{{ item.url }}">{{ item.label }}</a>
+  {% else %}
+    <a class="nav-link" href="{{ item.url }}">{{ item.label }}</a>
+  {% endif %}
+  {% endfor %}
+
+  {% if with_admin %}
+  <a class="nav-link" href="/admin/">Admin</a>
+  {% endif %}
+</nav>

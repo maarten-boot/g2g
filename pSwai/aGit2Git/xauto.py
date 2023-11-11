@@ -1,4 +1,5 @@
 import sys
+from importlib import import_module
 
 from typing import (
     Any,
@@ -10,101 +11,47 @@ from django.template import (
     Template,
 )
 
-from django.urls import path
-
-
-from aGit2Git.models import (
-    Server,
-    Script,
-    Url,
-    UrlPair,
-    CopyType,
-)
-
-from aGit2Git.forms import (
-    ServerForm,
-    ScriptForm,
-    UrlForm,
-    UrlPairForm,
-    CopyTypeForm,
-)
-
 from aGit2Git.autoGui import (
-    # AUTO_GUI,
     getFields,
     getNavNames,
 )
 
-from aGit2Git import views
-
-# maxPerPagePaginate
 DEBUG = 0
 
 
-def urlGenOne(app, k):
-    ll = [
-        path(f"{app}/{k}/", views.index, name=f"{app}_{k}"),
-        path(f"{app}/{k}/add/", views.form, name=f"{app}_{k}_add"),
-        path(f"{app}/{k}/edit/<uuid:id>", views.form, name=f"{app}_{k}_edit"),
-        path(f"{app}/{k}/delete/<uuid:id>", views.form, name=f"{app}_{k}_delete"),
-    ]
+def importClass(klassStr):
+    module_path, class_name = klassStr.rsplit(".", 1)
+    try:
+        module = import_module(module_path)
+        klass = getattr(module, class_name)
+    except (ImportError, AttributeError) as e:
+        print(e, file=sys.stderr)
+        raise ImportError(klassStr)
 
-    print(ll, file=sys.stderr)
-    return ll
-
-
-def urlGenAll(app):
-    xList = getNavNames()
-    urlPatternList = []
-    for item in xList:
-        z = urlGenOne(app, item)
-        urlPatternList += z
-
-    print(urlPatternList, file=sys.stderr)
-    return urlPatternList
+    return klass
 
 
 def mapForm(app: str, fp: str, *args, **kwargs) -> Any:
     xList = getNavNames()
-    for name in xList:
-        pass
-
-    if fp.startswith(f"/{app}/server/"):
-        return ServerForm(*args, **kwargs)
-    if fp.startswith(f"/{app}/script/"):
-        return ScriptForm(*args, **kwargs)
-    if fp.startswith(f"/{app}/url/"):
-        return UrlForm(*args, **kwargs)
-    if fp.startswith(f"/{app}/urlpair/"):
-        return UrlPairForm(*args, **kwargs)
-    if fp.startswith(f"/{app}/copytype/"):
-        return CopyTypeForm(*args, **kwargs)
-
+    for nav, modelName in xList.items():
+        if fp.startswith(f"/{app}/{nav}/"):
+            class_str = ".".join([app, "forms", modelName + "Form"])
+            klass = importClass(class_str)
+            return klass(*args, **kwargs)
     return None
 
 
 def mapModel(app: str, fp):
     xList = getNavNames()
-    for name in xList:
-        pass
-
-    print(app, fp, file=sys.stderr)
-
-    if fp.startswith(f"/{app}/server/"):
-        return Server
-    if fp.startswith(f"/{app}/script/"):
-        return Script
-    if fp.startswith(f"/{app}/url/"):
-        return Url
-    if fp.startswith(f"/{app}/urlpair/"):
-        return UrlPair
-    if fp.startswith(f"/{app}/copytype/"):
-        return CopyType
-
+    for nav, modelName in xList.items():
+        if fp.startswith(f"/{app}/{nav}/"):
+            class_str = ".".join([app, "models", modelName])
+            klass = importClass(class_str)
+            return klass
     return None
 
 
-def mkDeleteLink(pk: str):
+def _mkDeleteLink(pk: str):
     return (
         "<input class='form-check-input' type='checkbox' value='"
         + f"{pk}"
@@ -114,43 +61,43 @@ def mkDeleteLink(pk: str):
     )
 
 
-def makeEditLink(pk: str, name: str):
+def _makeEditLink(pk: str, name: str):
     what = "edit"
     return "<a href='{{ action_clean }}" + what + "/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
 
 
-def defaultFieldTemplate(name):
+def _defaultFieldTemplate(name):
     return "{{ " + f"{name}" + " }}"
 
 
-def addFields(xFields, ff, skipList):
+def _addFields(xFields, ff, skipList):
     for k, v in ff.items():
         if k in skipList:
             continue
-        xFields[v] = defaultFieldTemplate(k)
+        xFields[v] = _defaultFieldTemplate(k)
 
 
-def xFieldsDefault(ff):
+def _xFieldsDefault(ff):
     xFields = {
-        "_": mkDeleteLink("id"),
-        "Name": makeEditLink("id", "name"),
+        "_": _mkDeleteLink("id"),
+        "Name": _makeEditLink("id", "name"),
     }
-    addFields(xFields, ff, ["name"])
+    _addFields(xFields, ff, ["name"])
     return xFields
 
 
 def getMyFields(app, fp):
     model = mapModel(app, fp)
-    print(model, file=sys.stderr)
+    # print(model, file=sys.stderr)
     if not model:
         return {}
 
     ff = getFields(model.__name__).get("fields")
-    print(ff, file=sys.stderr)
-    xList = getNavNames()
+    # print(ff, file=sys.stderr)
+    xList = getNavNames().keys()
     for name in xList:
         if fp.startswith(f"/{app}/{name}/"):
-            return xFieldsDefault(ff)
+            return _xFieldsDefault(ff)
 
     return {}
 
@@ -190,7 +137,7 @@ def makeIndexFields(app, fp, page_obj):
         return html
 
     xFields = getMyFields(app, fp)
-    print(xFields, file=sys.stderr)
+    # print(xFields, file=sys.stderr)
 
     data = []
     names = []

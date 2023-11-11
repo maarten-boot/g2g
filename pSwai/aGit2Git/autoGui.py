@@ -1,12 +1,18 @@
+# import sys
+
 from typing import (
     # Any,
     Dict,
     List,
 )
 
+from django.urls import path
+
+from aGit2Git import views
+
 
 AUTO_GUI = {
-    "max_per_page": 25,
+    "max_per_page": 5,
     "navigation": {
         "Server": "server",
         "Url": "url",
@@ -34,7 +40,6 @@ AUTO_GUI = {
             "nav": "url",
             "fields": {
                 "name": "Name",
-                # "internal": "Internal",
                 "description": "Description",
                 "server": "Server",
                 "url": "Url",
@@ -44,7 +49,6 @@ AUTO_GUI = {
                 "name": "name",
                 "description": "description",
                 "server": "server__name",
-                # "internal": "internal",
                 "url": "url",
                 "branch": "branch",
             },
@@ -100,14 +104,37 @@ AUTO_GUI = {
 }
 
 
-def getNavNames() -> List[str]:
-    ret = []
+def getNavNames() -> Dict[str, str]:
+    ret = {}
     k = "models"
     for name, v in AUTO_GUI[k].items():
         if "nav" not in v:
             continue
-        ret.append(v["nav"])
+        ret[v["nav"]] = name
     return ret
+
+
+def _urlGenOne(app, k):
+    ll = [
+        path(f"{app}/{k}/", views.index, name=f"{app}_{k}"),
+        path(f"{app}/{k}/add/", views.form, name=f"{app}_{k}_add"),
+        path(f"{app}/{k}/edit/<uuid:id>", views.form, name=f"{app}_{k}_edit"),
+        path(f"{app}/{k}/delete/<uuid:id>", views.form, name=f"{app}_{k}_delete"),
+    ]
+
+    # print(ll, file=sys.stderr)
+    return ll
+
+
+def urlGenAll(app: str) -> List[str]:
+    xList = getNavNames().keys()
+    urlPatternList = []
+    for item in xList:
+        z = _urlGenOne(app, item)
+        urlPatternList += z
+
+    # print(urlPatternList, file=sys.stderr)
+    return urlPatternList
 
 
 def getFields(modelName: str) -> Dict[str, str]:
@@ -122,3 +149,17 @@ def maxPerPagePaginate() -> int:
     if k in AUTO_GUI:
         return int(AUTO_GUI[k])
     return 15
+
+
+def navigation():
+    # this func should be totally generic all custom data must come frpm xauto
+    app_name = __package__
+    zz = AUTO_GUI["navigation"]
+    rr = []
+    for k, v in zz.items():
+        data = {
+            "url": "/" + app_name + "/" + v + "/",
+            "label": k,
+        }
+        rr.append(data)
+    return rr

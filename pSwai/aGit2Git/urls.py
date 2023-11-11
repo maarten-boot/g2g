@@ -1,8 +1,7 @@
 # from django.urls import path
 
 # from aGit2Git import views
-from aGit2Git.xauto import (
-    # urlGenOne,
+from aGit2Git.autoGui import (
     urlGenAll,
 )
 

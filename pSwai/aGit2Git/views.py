@@ -1,4 +1,4 @@
-import sys
+# import sys
 
 from typing import (
     Any,
@@ -17,35 +17,20 @@ from django.core.paginator import Paginator
 from aGit2Git.xauto import (
     mapModel,
     mapForm,
-    # maxPerPagePaginate,
     makeIndexFields,
     getFilterPrefix,
 )
 
 from aGit2Git.autoGui import (
-    AUTO_GUI as AG,
     getFields,
     maxPerPagePaginate,
+    navigation,
 )
 
 
 def empty(request):
     # this func should be totally generic all custom data must come frpm xauto
     return redirect("index")
-
-
-def navigation():
-    # this func should be totally generic all custom data must come frpm xauto
-    app_name = __package__
-    zz = AG["navigation"]
-    rr = []
-    for k, v in zz.items():
-        data = {
-            "url": "/" + app_name + "/" + v + "/",
-            "label": k,
-        }
-        rr.append(data)
-    return rr
 
 
 def getFilterHint(modelName, fieldName):
@@ -80,7 +65,7 @@ def getIndexData(model, pData):
 
         zArgs[f"{hint}__icontains"] = v
 
-    print(zArgs, file=sys.stderr)
+    # print(zArgs, file=sys.stderr)
 
     return model.objects.filter(**zArgs)
 
@@ -95,7 +80,7 @@ def startContext(request) -> Dict[str, Any]:
         "navigation": navigation(),
         "action": fp,
         "action_clean": fp.split("?")[0],
-        "path": fp[1:].split("/"),
+        "path": fp[1:][:-1].split("/"),
     }
     return context
 
@@ -118,11 +103,11 @@ def index(request, *args, **kwargs):
     page_obj = None
     xNames = {}
     model = mapModel(app_name, fp)
-    print(model, file=sys.stderr)
+    # print(model, file=sys.stderr)
 
     if model:
         item_list = getIndexData(model, pData)
-        print(item_list, file=sys.stderr)
+        # print(item_list, file=sys.stderr)
         paginator = Paginator(item_list, perPage)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
@@ -147,8 +132,33 @@ def index(request, *args, **kwargs):
         "filter": fDict,
     }
     context = c1 | c2  # merge the dicts
-    print(context, file=sys.stderr)
+    # print(context, file=sys.stderr)
     return render(request, f"{app_name}/index.html", context)
+
+
+def _deleteAndRedirect(model, pData, fp):
+    instance = model.objects.get(id=pData["delete"])
+    instance.delete()
+    fp3 = fp.replace("/delete/", "/")
+    fp3 = fp3.replace(pData["delete"], "")
+    return redirect(f"{fp3}")
+
+
+def _doValidForm(xForm, pData, fp, k, **kwargs):
+    item = xForm.save()
+    if k not in kwargs:
+        if "_addanother" in pData:
+            return redirect(f"{fp}")
+
+        if "_continue" in pData:
+            fp2 = fp.replace("/add/", "/edit/")
+            return redirect(f"{fp2}{item.id}")
+    else:
+        if "_addanother" in pData:
+            fp2 = fp.split("/edit/")[0] + "/add/"
+            return redirect(f"{fp2}")
+
+    return None
 
 
 # @login_required
@@ -175,15 +185,7 @@ def form(request, *args, **kwargs):
 
         # delete
         if "delete" in pData:
-            instance = model.objects.get(id=pData["delete"])
-            instance.delete()
-            fp3 = fp.replace("/delete/", "/")
-            fp3 = fp3.replace(pData["delete"], "")
-            return redirect(f"{fp3}")
-
-        # edit or add
-        if "_save" in pData:
-            pass
+            return _deleteAndRedirect(model, pData, fp)
 
         if model:
             xForm = mapForm(app_name, fp, pData, instance=mData)
@@ -191,19 +193,10 @@ def form(request, *args, **kwargs):
             xForm = mapForm(app_name, fp, pData)
 
         if xForm.is_valid():
-            item = xForm.save()
-            if k not in kwargs:
-                if "_addanother" in pData:
-                    return redirect(f"{fp}")
-                if "_continue" in pData or "_save" in pData:
-                    fp2 = fp.replace("/add/", "/edit/")
-                    return redirect(f"{fp2}{item.id}")
-            else:
-                if "_addanother" in pData:
-                    fp2 = fp.split("/edit/")[0] + "/add/"
-                    return redirect(f"{fp2}")
-
-        xId = kwargs[k]
+            resp = _doValidForm(xForm, pData, fp, k, **kwargs)
+            if resp:
+                return resp
+        # xId = kwargs[k]
 
     path = fp[1:].split("/")
 

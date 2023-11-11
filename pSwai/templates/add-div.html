@@ -1,4 +1,4 @@
-{% if updating == True %}
+{% if updating == True or action_clean != "/" %}
 <div>
   <div style="margin: 2 2;">
     <a href="/{{ path.0}}/{{path.1}}/add/"> Add </a> a new {{ path.1 }}
