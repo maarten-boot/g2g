@@ -1,11 +1,17 @@
 {% extends "base_generic.html" %}
 
-
 {% block content %}
 <h1>Login</h1>
-<form action="/login/" method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
-</form>
+<table>
+    <form action="/login/" method="POST">
+        {% csrf_token %}
+        {{ form.as_table }}
+        <tr>
+            <td></td>
+            <td>
+                <button type="submit">Login</button>
+            </td>
+        </tr>
+    </form>
+</table>
 {% endblock %}

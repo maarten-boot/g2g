@@ -1,13 +1,16 @@
-<div class="col">{{ path|join:"->" }}</div>
-<div class="col"></div>
 <div class="col">
+  {% for name, url in xPath.items %}
+    <a href="{{ url }}">{{ name }}</a> &nbsp; . &nbsp;
+  {% endfor %}
+</div>
+
 {% if request.user.is_authenticated %}
-  <div class="col">
+  <div class="col-md-auto">
     {{ request.user.username }}
-  </div>
-  <div class="col">
     <a href="{% url 'logout' %}">Logout</a>
   </div>
 {% endif %}
+
+<div class="col-md-auto">
+  {% now "jS F Y H:i" %}
 </div>
-<div class="col">{% now "jS F Y H:i" %} </div>

@@ -93,12 +93,19 @@ def _startContext(autoGuiDict, app_name: str, request) -> Dict[str, Any]:
         print(f"action_clean:: {action_clean}", file=sys.stderr)
         print(f"navigation:: {nav}", file=sys.stderr)
 
+    path = fp[1:][:-1].split("/")
+    xPath = {}
+    for idx, x in enumerate(path):
+        xPath[x] = "/" + "/".join(path[:(idx + 1)]) + "/"
+        print(x, xPath[x], file=sys.stderr)
+
     context = {
         "title": title,
         "action": action,
         "action_clean": action_clean,
         "navigation": nav,
-        "path": fp[1:][:-1].split("/"),
+        "path": path,
+        "xPath": xPath,
     }
     return context
 
