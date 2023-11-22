@@ -1,19 +1,25 @@
-<nav class="nav flex-sm-column nav-pills flex-sm-row">
-  {% if action_clean == "/" %}
-  <a class="nav-link active" href="{% url 'index' %}">Home</a>
-  {% else %}
-  <a class="nav-link" href="{% url 'index' %}">Home</a>
-  {% endif %}
+<div class="nav nav-pills flex-sm-column">
+  {% for k,v in navigation.items %}
+  <div class="dropdown">
+    {% if k == "_home" %}
+      <a class="btn btn-secondary" href="/" role="button">Home</a>
+    {% else %}
+      {% if active_clean == item.url %}
+        <a class="btn btn-secondary dropdown-show show active" data-flip="false" href="/{{ k }}/" role="button" data-bs-toggle="dropdown" aria-expanded="true">{{ k }}</a>
+      {% else %}
+        <a class="btn btn-secondary dropdown-toggle" href="/{{ k }}/" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ k }}</a>
+      {% endif %}
 
-  {% for item in navigation %}
-  {% if action_clean == item.url %}
-    <a class="nav-link active" href="{{ item.url }}">{{ item.label }}</a>
-  {% else %}
-    <a class="nav-link" href="{{ item.url }}">{{ item.label }}</a>
-  {% endif %}
+    <ul class="dropdown-menu">
+      {% for item in v %}
+        {% if action_clean == item.url %}
+        <li><a class="nav-link dropdown-item active" aria-current="true" href="{{ item.url }}">{{ item.label }}</a></li>
+        {% else %}
+        <li><a class="nav-link dropdown-item" href="{{ item.url }}">{{ item.label }}</a></li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
   {% endfor %}
-
-  {% if with_admin %}
-  <a class="nav-link" href="/admin/">Admin</a>
-  {% endif %}
-</nav>
+</div>

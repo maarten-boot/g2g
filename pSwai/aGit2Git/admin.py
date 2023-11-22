@@ -5,7 +5,7 @@ from django.contrib import admin
 # from django.contrib.admin.views.main import ChangeList
 # from django.urls import reverse
 
-from aGit2Git.models import Tag
+# from aGit2Git.models import Tag
 from aGit2Git.models import Url
 from aGit2Git.models import CopyType
 from aGit2Git.models import UrlPair
@@ -13,20 +13,6 @@ from aGit2Git.models import Server
 from aGit2Git.models import Script
 
 LIST_PER_PAGE = 50
-
-
-if 0:
-
-    @admin.register(Tag)
-    class Tag(admin.ModelAdmin):
-        list_display = (
-            "name",
-            "description",
-            "updStamp",
-        )
-        list_per_page = LIST_PER_PAGE
-        search_fields = ("name",)
-        list_filter = ("updStamp",)
 
 
 @admin.register(Url)

@@ -1,4 +1,4 @@
-# import sys
+import sys
 
 from typing import (
     Any,
@@ -23,14 +23,18 @@ from appAutoGui.xauto import (
 )
 
 
+def debugOn() -> bool:
+    return True
+
+
 def _getFilterHint(
-    AUTO_GUI: Dict[str, Any],
+    autoGuiDict: Dict[str, Any],
     modelName: str,
     fieldName: str,
 ) -> str:
     # return the filter hint we use to actually filter,
     # so we can use fk fields also to filter on
-    fields = getFields(AUTO_GUI, modelName)
+    fields = getFields(autoGuiDict, modelName)
     k = "filter"
 
     if k not in fields:
@@ -43,7 +47,7 @@ def _getFilterHint(
 
 
 def _doOneIndexItem(
-    AUTO_GUI,
+    autoGuiDict,
     model,
     k,
     v,
@@ -57,36 +61,50 @@ def _doOneIndexItem(
         return
 
     k2 = k.split(prefix)[1]
-    hint = _getFilterHint(AUTO_GUI, model.__name__, k2)
+    hint = _getFilterHint(autoGuiDict, model.__name__, k2)
     if hint is None:
         return
 
     filterDict[f"{hint}__icontains"] = v
 
 
-def _getSearchDataWithFilterApplied(AUTO_GUI, model, pData):
+def _getSearchDataWithFilterApplied(autoGuiDict, model, pData):
     prefix = getFilterPrefix()
     filterDict = {}
     for k, v in pData.items():
-        _doOneIndexItem(AUTO_GUI, model, k, v, prefix, filterDict)
+        _doOneIndexItem(autoGuiDict, model, k, v, prefix, filterDict)
 
     return model.objects.filter(**filterDict)
 
 
-def _startContext(AUTO_GUI, app_name: str, request) -> Dict[str, Any]:
+def _startContext(autoGuiDict, app_name: str, request) -> Dict[str, Any]:
     fp = request.get_full_path()
+
+    title = str(fp)
+    action = fp
+    action_clean = fp.split("?")[0]
+    # nav = navigation(autoGuiDict, app_name)
+    nav = navigation()
+    path = fp[1:][:-1].split("/")
+
+    if debugOn():
+        print(f"path:: {path}", file=sys.stderr)
+        print(f"action:: {action}", file=sys.stderr)
+        print(f"action_clean:: {action_clean}", file=sys.stderr)
+        print(f"navigation:: {nav}", file=sys.stderr)
+
     context = {
-        "title": f"{fp}",
-        "navigation": navigation(AUTO_GUI, app_name),
-        "action": fp,
-        "action_clean": fp.split("?")[0],
+        "title": title,
+        "action": action,
+        "action_clean": action_clean,
+        "navigation": nav,
         "path": fp[1:][:-1].split("/"),
     }
     return context
 
 
 def genericIndex(
-    AUTO_GUI,
+    autoGuiDict,
     app_name,
     request,
     *args,
@@ -95,7 +113,7 @@ def genericIndex(
     fPrefix = getFilterPrefix()
     fp = request.get_full_path()
 
-    maxPerPage = maxPerPagePaginate(AUTO_GUI)
+    maxPerPage = maxPerPagePaginate(autoGuiDict)
     perPage = maxPerPage
 
     pData = {}
@@ -104,27 +122,32 @@ def genericIndex(
 
     page_obj = None
     xNames = {}
-    model = mapModel(
-        AUTO_GUI,
-        app_name,
-        fp,
-    )
+    model = None
+    if autoGuiDict and len(autoGuiDict) and app_name:
+        model = mapModel(
+            autoGuiDict,
+            app_name,
+            fp,
+        )
 
     if model:
-        item_list = _getSearchDataWithFilterApplied(AUTO_GUI, model, pData)
+        item_list = _getSearchDataWithFilterApplied(autoGuiDict, model, pData)
         paginator = Paginator(item_list, perPage)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
-        xNames = getFields(AUTO_GUI, model.__name__).get(
+        xNames = getFields(autoGuiDict, model.__name__).get(
             "fields",
         )
 
-    names, data = makeIndexFields(
-        AUTO_GUI,
-        app_name,
-        fp,
-        page_obj,
-    )
+    names = []
+    data = []
+    if autoGuiDict and len(autoGuiDict) and app_name:
+        names, data = makeIndexFields(
+            autoGuiDict,
+            app_name,
+            fp,
+            page_obj,
+        )
 
     fDict = {}
     fDict[f"{fPrefix}_"] = None
@@ -134,7 +157,7 @@ def genericIndex(
         fDict[k] = v
 
     c1 = _startContext(
-        AUTO_GUI,
+        autoGuiDict,
         app_name,
         request,
     )
@@ -147,6 +170,7 @@ def genericIndex(
         "filter": fDict,
     }
     context = c1 | c2  # merge the dicts
+
     return render(
         request,
         f"{app_name}/index.html",
@@ -191,7 +215,7 @@ def _doValidForm(
 
 # @login_required
 def genericForm(
-    AUTO_GUI,
+    autoGuiDict,
     app_name,
     request,
     *args,
@@ -200,7 +224,7 @@ def genericForm(
     # used for add, edit, delete
     fp = request.get_full_path()
     xForm = mapForm(
-        AUTO_GUI,
+        autoGuiDict,
         app_name,
         fp,
         None,
@@ -212,11 +236,11 @@ def genericForm(
     if k in kwargs:
         # if we have a id, fetch the data
         xId = kwargs[k]
-        model = mapModel(AUTO_GUI, app_name, fp)
+        model = mapModel(autoGuiDict, app_name, fp)
         if model:
             mData = model.objects.get(pk=kwargs[k])
             xForm = mapForm(
-                AUTO_GUI,
+                autoGuiDict,
                 app_name,
                 fp,
                 instance=mData,
@@ -234,7 +258,7 @@ def genericForm(
 
         if model:
             xForm = mapForm(
-                AUTO_GUI,
+                autoGuiDict,
                 app_name,
                 fp,
                 pData,
@@ -242,7 +266,7 @@ def genericForm(
             )
         else:
             xForm = mapForm(
-                AUTO_GUI,
+                autoGuiDict,
                 app_name,
                 fp,
                 pData,
@@ -269,7 +293,7 @@ def genericForm(
     if fp.startswith(f"/{path[0]}/{path[1]}/edit/"):
         updating = True
 
-    c1 = _startContext(AUTO_GUI, app_name, request)
+    c1 = _startContext(autoGuiDict, app_name, request)
     c2 = {
         "form": xForm,
         "id": xId,

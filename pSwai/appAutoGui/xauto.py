@@ -1,8 +1,6 @@
 import sys
 from importlib import import_module
-
 from django.urls import path
-
 from django.template import (
     Context,
     Template,
@@ -12,7 +10,32 @@ from typing import (
     Any,
     Dict,
     List,
+    Tuple,
 )
+
+
+def _importItem(itemStr):
+    module_path, itemName = itemStr.rsplit(".", 1)
+    try:
+        module = import_module(module_path)
+        item = getattr(module, itemName)
+    except (ImportError, AttributeError) as e:
+        print(e, file=sys.stderr)
+        raise ImportError(itemStr)
+
+    return item
+
+
+def _importClass(klassStr):
+    module_path, class_name = klassStr.rsplit(".", 1)
+    try:
+        module = import_module(module_path)
+        klass = getattr(module, class_name)
+    except (ImportError, AttributeError) as e:
+        print(e, file=sys.stderr)
+        raise ImportError(klassStr)
+
+    return klass
 
 
 def getNavNames(autoGuiDict) -> Dict[str, str]:
@@ -25,8 +48,29 @@ def getNavNames(autoGuiDict) -> Dict[str, str]:
     return ret
 
 
+def mapForm(autoGuiDict, app: str, fp: str, *args, **kwargs) -> Any:
+    xList = getNavNames(autoGuiDict)
+    for nav, modelName in xList.items():
+        if fp.startswith(f"/{app}/{nav}/"):
+            class_str = ".".join([app, "forms", modelName + "Form"])
+            klass = _importClass(class_str)
+            return klass(*args, **kwargs)
+    return None
+
+
+def mapModel(autoGuiDict, app: str, fp):
+    xList = getNavNames(autoGuiDict)
+    for nav, modelName in xList.items():
+        if fp.startswith(f"/{app}/{nav}/"):
+            class_str = ".".join([app, "models", modelName])
+            klass = _importClass(class_str)
+            return klass
+    return None
+
+
 def _urlGenOne(app, index, form, nav: str):
     ll = [
+        path(f"{app}/", index, name=f"{app}"),
         path(f"{app}/{nav}/", index, name=f"{app}_{nav}"),
         path(f"{app}/{nav}/add/", form, name=f"{app}_{nav}_add"),
         path(f"{app}/{nav}/edit/<uuid:id>", form, name=f"{app}_{nav}_edit"),
@@ -59,7 +103,8 @@ def maxPerPagePaginate(autoGuiDict) -> int:
     return 15
 
 
-def navigation(autoGuiDict: Dict[str, Any], app_name: str):
+def appNavigation(autoGuiDict: Dict[str, Any], app_name: str):
+    # only create the nav for this app_name
     zz = autoGuiDict.get("navigation")
     rr = []
     if zz:
@@ -72,36 +117,32 @@ def navigation(autoGuiDict: Dict[str, Any], app_name: str):
     return rr
 
 
-def importClass(klassStr):
-    module_path, class_name = klassStr.rsplit(".", 1)
-    try:
-        module = import_module(module_path)
-        klass = getattr(module, class_name)
-    except (ImportError, AttributeError) as e:
-        print(e, file=sys.stderr)
-        raise ImportError(klassStr)
-
-    return klass
+def getKnownApps():
+    return ["aGit2Git"]
 
 
-def mapForm(autoGuiDict, app: str, fp: str, *args, **kwargs) -> Any:
-    xList = getNavNames(autoGuiDict)
-    for nav, modelName in xList.items():
-        if fp.startswith(f"/{app}/{nav}/"):
-            class_str = ".".join([app, "forms", modelName + "Form"])
-            klass = importClass(class_str)
-            return klass(*args, **kwargs)
-    return None
+def addNavHome():
+    data = {
+        "url": "/",
+        "label": "Home",
+    }
+    zz = []
+    zz.append(data)
+    return zz
 
 
-def mapModel(autoGuiDict, app: str, fp):
-    xList = getNavNames(autoGuiDict)
-    for nav, modelName in xList.items():
-        if fp.startswith(f"/{app}/{nav}/"):
-            class_str = ".".join([app, "models", modelName])
-            klass = importClass(class_str)
-            return klass
-    return None
+def navigation():
+    nav = {}
+
+    nav["_home"] = addNavHome()
+
+    # for all known apps create the nav for this app, add optional admin and home
+    # return the nav as dict
+    for app_name in getKnownApps():
+        appAutoGuiDict = _importItem(".".join([app_name, "autoGui", "AUTO_GUI"]))
+        if appAutoGuiDict:
+            nav[app_name] = appNavigation(appAutoGuiDict, app_name)
+    return nav
 
 
 def _mkDeleteLink(pk: str):
@@ -172,13 +213,14 @@ def getFilterPrefix():
     return "filter-"
 
 
-def makeIndexFields(autoGuiDict, app, fp, page_obj):
-    def test1(tempString, item):
-        t = Template(tempString)
-        c = Context(item)
-        html = t.render(c)
-        return html
+def _makeHtmlRender(tempString, item):
+    t = Template(tempString)
+    c = Context(item)
+    html = t.render(c)
+    return html
 
+
+def makeIndexFields(autoGuiDict, app, fp, page_obj) -> Tuple[List[str], List[Dict[str, Any]]]:
     xFields = _getMyFields(autoGuiDict, app, fp)
 
     data = []
@@ -193,7 +235,7 @@ def makeIndexFields(autoGuiDict, app, fp, page_obj):
             for k, v in xFields.items():
                 if k not in names:
                     names.append(k)
-                html = test1(v, fieldData)
+                html = _makeHtmlRender(v, fieldData)
                 fields[k] = html
             data.append(fields)
     return names, data

@@ -39,6 +39,8 @@ ALLOWED_HOSTS = tuple(env.list("DJANGO_ALLOWED_HOSTS", default=[]))
 
 INSTALLED_APPS = [
     "aGit2Git",
+    "appAutoGui",
+    "appLogin",
     "django.forms",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -156,6 +158,15 @@ AUTH_LDAP_USER_ATTR_MAP = {
 
 # To ensure user object is updated each time on login
 AUTH_LDAP_ALWAYS_UPDATE_USER = True
+AUTH_LDAP_FIND_GROUP_PERMS = True
+AUTH_LDAP_CACHE_GROUPS = True
+AUTH_LDAP_CACHE_TIMEOUT = 60 * 20  # 20 minutes
+AUTH_LDAP_MIRROR_GROUPS = True
+
+AUTHENTICATION_BACKENDS = [
+    "django_auth_ldap.backend.LDAPBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
 
 # <<<<<<<<<<<<<<< LDAP END >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # <<<<<<<<<<<<<<< LDAP END >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -268,3 +279,7 @@ class CustomFormRenderer(TemplatesSetting):
 
 
 FORM_RENDERER = "pSwai.settings.CustomFormRenderer"
+
+LOGIN_URL = "home"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"

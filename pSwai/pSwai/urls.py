@@ -14,24 +14,35 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import sys
+
 from django.contrib import admin
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.conf.urls.static import static
+from django.conf import settings
 from django.urls import (
     include,
     path,
-    # re_path,
 )
-from django.conf.urls.static import static
-from django.conf import settings
 
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
-from aGit2Git import views
+from appAutoGui import views  # the project view is outside of all apps
+
+for appName in settings.INSTALLED_APPS:
+    if appName.startswith("django."):
+        continue
+    print(f"i see {appName}", file=sys.stderr)
+    # now see if we have file autoGui.py
+    # and if we have urls.py
 
 urlpatterns = [
     path("admin/", admin.site.urls, name="admin"),
-    path("", views.index, name="index"),
+    path("", views.index, name="home"),
+    path("", include("appLogin.urls")),
     path("", include("aGit2Git.urls")),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
