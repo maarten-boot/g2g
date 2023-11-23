@@ -2,9 +2,9 @@
             {% if action_clean != "/" %}
               {% include "add-div.html" %}
             {% endif %}
-          {% include "index-paginate.html" %}
           <div>
             <form action="{{ action_clean }}" method="post">
+            {% include "index-paginate.html" %}
               {% csrf_token %}
               <input class="hidden" type="submit" name="dummy" value="dummy" style="z-index: -1; display: none;"/>
               <table class="index table table-sm table-hover table-bordered caption-top">
@@ -31,7 +31,7 @@
                   {% include "index-name-row.html" %}
                 </tfoot>
               </table>
+          {% include "index-paginate.html" %}
             </form>
           </div>
-          {% include "index-paginate.html" %}
           {% endif %}

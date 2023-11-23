@@ -1,6 +1,10 @@
 <div class="col">
   {% for name, url in xPath.items %}
-    <a href="{{ url }}">{{ name }}</a> &nbsp; . &nbsp;
+    {% if url != "" %}
+      <a href="{{ url }}">{{ name }}</a> &nbsp; . &nbsp;
+    {% else %}
+      {{ name }} &nbsp; . &nbsp;
+    {% endif %}
   {% endfor %}
 </div>
 

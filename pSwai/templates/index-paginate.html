@@ -3,14 +3,14 @@
   {% if page_obj.has_previous %}
     <a href="?page=1">first</a>
   {% else %}
-    &nbsp;
+    first
   {% endif %}
   </div>
   <div class="step-links col-sm-auto">
   {% if page_obj.has_previous %}
     <a href="?page={{ page_obj.previous_page_number }}">prev</a>
   {% else %}
-    &nbsp;
+    prev
   {% endif %}
   </div>
   <div class="current col-sm-auto">
@@ -20,14 +20,20 @@
   {% if page_obj.has_next %}
     <a href="?page={{ page_obj.next_page_number }}">next</a>
   {% else %}
-    &nbsp;
+    next
   {% endif %}
   </div>
   <div class="step-links col-sm-auto">
   {% if page_obj.has_next %}
     <a href="?page={{ page_obj.paginator.num_pages }}">last</a>
   {% else %}
-    &nbsp;
+    last
   {% endif %}
+  </div>
+  <div class="step-links col-sm-auto">
+    perPage:
+  </div>
+  <div class="step-links col-sm-auto">
+    <input style="width: 3em;" class="input-filter-text" type="text" name="perPage" value="{{ perPage }}" id="perPage" onchange="myFunction()" />
   </div>
 </div>

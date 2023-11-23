@@ -1,7 +1,7 @@
 from django.forms import (
     Form,
     CharField,
-    BooleanField,
+    # BooleanField,
     PasswordInput,
 )
 
