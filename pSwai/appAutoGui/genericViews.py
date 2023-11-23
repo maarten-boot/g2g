@@ -112,12 +112,12 @@ def _startContext(autoGuiDict, app_name: str, request) -> Dict[str, Any]:
         print(f"navigation:: {nav}", file=sys.stderr)
 
     # currently only the first 2 elements can be link, and possibly the last after edit has been seen
-    path = fullPath[1:][:-1].split("/")
+    zpath = action_clean[1:][:-1].split("/")
     xPath = {}
     n = 0
-    for idx, x in enumerate(path):
+    for idx, x in enumerate(zpath):
         if n < 2:
-            xPath[x] = "/" + "/".join(path[: (idx + 1)]) + "/"
+            xPath[x] = "/" + "/".join(zpath[: (idx + 1)]) + "/"
         else:
             xPath[x] = ""
         n += 1
@@ -144,6 +144,35 @@ def _getPostData(request):
 
 def doPagingWithSearchFilters():
     pass
+
+
+def doPerPage(request, autoGuiDict, postData):
+    maxPerPage = maxPerPagePaginate(autoGuiDict)
+    perPage = None
+
+    k = "perPage"
+    k2 = "perPage2"
+    if k in request.session:
+        perPage = request.session[k]
+
+    if debugOn():
+        print(postData, file=sys.stderr)
+
+    for j in [k, k2]:
+        z = postData.get(j)
+        if z:
+            if int(z) != request.session[k]:
+                perPage = int(z)
+                if perPage <= 0:
+                    perPage = maxPerPage
+                if perPage > 1000:
+                    perPage = 1000
+
+    if perPage is None:
+        perPage = maxPerPage
+
+    request.session[k] = perPage
+    return perPage
 
 
 def genericIndex(
@@ -175,9 +204,9 @@ def genericIndex(
             fullPath,
         )
 
-    maxPerPage = maxPerPagePaginate(autoGuiDict)
-    perPage = maxPerPage
     postData = _getPostData(request)
+    perPage = doPerPage(request, autoGuiDict, postData)
+
     page_obj = None
     fieldNames = {}
 
