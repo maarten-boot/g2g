@@ -14,7 +14,7 @@ from typing import (
 )
 
 
-def _importItem(itemStr):
+def _importItem(itemStr: str) -> Any:
     module_path, itemName = itemStr.rsplit(".", 1)
     try:
         module = import_module(module_path)
@@ -26,7 +26,9 @@ def _importItem(itemStr):
     return item
 
 
-def _importClass(klassStr):
+def _importClass(
+    klassStr: str,
+) -> Any:
     module_path, class_name = klassStr.rsplit(".", 1)
     try:
         module = import_module(module_path)
@@ -38,8 +40,10 @@ def _importClass(klassStr):
     return klass
 
 
-def getNavNames(autoGuiDict) -> Dict[str, str]:
-    ret = {}
+def getNavNames(
+    autoGuiDict: Dict[str, Any],
+) -> Dict[str, str]:
+    ret: Dict[str, str] = {}
     k = "models"
     for name, v in autoGuiDict[k].items():
         if "nav" not in v:
@@ -48,7 +52,13 @@ def getNavNames(autoGuiDict) -> Dict[str, str]:
     return ret
 
 
-def mapForm(autoGuiDict, app: str, fp: str, *args, **kwargs) -> Any:
+def mapForm(
+    autoGuiDict,
+    app: str,
+    fp: str,
+    *args,
+    **kwargs,
+) -> Any:
     xList = getNavNames(autoGuiDict)
     for nav, modelName in xList.items():
         if fp.startswith(f"/{app}/{nav}/"):
@@ -58,7 +68,11 @@ def mapForm(autoGuiDict, app: str, fp: str, *args, **kwargs) -> Any:
     return None
 
 
-def mapModel(autoGuiDict, app: str, fp):
+def mapModel(
+    autoGuiDict,
+    app: str,
+    fp,
+):
     xList = getNavNames(autoGuiDict)
     for nav, modelName in xList.items():
         if fp.startswith(f"/{app}/{nav}/"):
@@ -68,7 +82,12 @@ def mapModel(autoGuiDict, app: str, fp):
     return None
 
 
-def _urlGenOne(app, index, form, nav: str):
+def _urlGenOne(
+    app,
+    index,
+    form,
+    nav: str,
+):
     ll = [
         path(f"{app}/", index, name=f"{app}"),
         path(f"{app}/{nav}/", index, name=f"{app}_{nav}"),
@@ -79,7 +98,12 @@ def _urlGenOne(app, index, form, nav: str):
     return ll
 
 
-def urlGenAll(autoGuiDict, app: str, index, form) -> List[str]:
+def urlGenAll(
+    autoGuiDict,
+    app: str,
+    index,
+    form,
+) -> List[str]:
     xList = getNavNames(autoGuiDict).keys()
     urlPatternList = []
     for item in xList:
@@ -89,21 +113,29 @@ def urlGenAll(autoGuiDict, app: str, index, form) -> List[str]:
     return urlPatternList
 
 
-def getFields(autoGuiDict, modelName: str) -> Dict[str, str]:
+def getFields(
+    autoGuiDict,
+    modelName: str,
+) -> Dict[str, str]:
     k = "models"
     if modelName in autoGuiDict[k]:
         return autoGuiDict[k][modelName]
     return {}
 
 
-def maxPerPagePaginate(autoGuiDict) -> int:
+def maxPerPagePaginate(
+    autoGuiDict,
+) -> int:
     k = "max_per_page"
     if k in autoGuiDict:
         return int(autoGuiDict[k])
     return 15
 
 
-def appNavigation(autoGuiDict: Dict[str, Any], app_name: str):
+def appNavigation(
+    autoGuiDict: Dict[str, Any],
+    app_name: str,
+):
     # only create the nav for this app_name
     zz = autoGuiDict.get("navigation")
     rr = []
@@ -145,42 +177,69 @@ def navigation():
     return nav
 
 
-def _mkDeleteLink(pk: str):
-    return (
-        "<input class='form-check-input' type='checkbox' value='"
-        + f"{pk}"
-        + "' name='action{{ action_clean }}' id='action{{ action_clean }}{{"
-        + f"{pk}"
-        + "}}'>"
-    )
+def _mkDeleteLink(
+    pk: str,
+):
+    zz = [
+        "<input",
+        "   class='form-check-input'",
+        "   type='checkbox'",
+        f"  value='{pk}'" "   name='action{{ action_clean }}'",
+        f"  id='action{{ action_clean }}{{ " + f"{pk}" + "}}'",
+        ">",
+    ]
+    return " ".join(zz)
 
 
-def _makeEditLink(pk: str, name: str):
+def _makeEditLink(
+    pk: str,
+    name: str,
+):
     what = "edit"
+    return (
+        "<a type='button' class='btn btn-sm btn-outline-info' href='{{ action_clean }}"
+        + what
+        + "/{{"
+        + f"{pk}"
+        + "}}'>&nbsp;</a>"
+    )
     return "<a href='{{ action_clean }}" + what + "/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
 
 
-def _defaultFieldTemplate(name):
+def _defaultFieldTemplate(
+    name,
+):
     return "{{ " + f"{name}" + " }}"
 
 
-def _addFields(xFields, ff, skipList):
+def _addFields(
+    xFields,
+    ff,
+    skipList,
+):
     for k, v in ff.items():
         if k in skipList:
             continue
         xFields[v] = _defaultFieldTemplate(k)
 
 
-def _xFieldsDefault(ff):
+def _xFieldsDefault(
+    ff,
+):
     xFields = {
-        "_": _mkDeleteLink("id"),
-        "Name": _makeEditLink("id", "name"),
+        "_D": _mkDeleteLink("id"),
+        "_E": _makeEditLink("id", "id"),
     }
-    _addFields(xFields, ff, ["name"])
+    # _addFields(xFields, ff, ["name"])
+    _addFields(xFields, ff, [])
     return xFields
 
 
-def _getMyFields(autoGuiDict, app, fp):
+def _getMyFields(
+    autoGuiDict,
+    app,
+    fp,
+):
     model = mapModel(autoGuiDict, app, fp)
     if not model:
         return {}
@@ -194,7 +253,10 @@ def _getMyFields(autoGuiDict, app, fp):
     return {}
 
 
-def _makeDictFromModel(autoGuiDict, instance):
+def _makeDictFromModel(
+    autoGuiDict,
+    instance,
+):
     ret = {}
     if not instance:
         return ret
@@ -213,14 +275,22 @@ def getFilterPrefix():
     return "filter-"
 
 
-def _makeHtmlRender(tempString, item):
+def _makeHtmlRender(
+    tempString,
+    item,
+):
     t = Template(tempString)
     c = Context(item)
     html = t.render(c)
     return html
 
 
-def makeIndexFields(autoGuiDict, app, fp, page_obj) -> Tuple[List[str], List[Dict[str, Any]]]:
+def makeIndexFields(
+    autoGuiDict,
+    app,
+    fp,
+    page_obj,
+) -> Tuple[List[str], List[Dict[str, Any]]]:
     xFields = _getMyFields(autoGuiDict, app, fp)
 
     data = []

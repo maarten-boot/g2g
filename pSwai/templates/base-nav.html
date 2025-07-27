@@ -1,25 +1,36 @@
 <div class="nav nav-pills flex-sm-column">
-  {% for k,v in navigation.items %}
-  <div class="dropdown">
-    {% if k == "_home" %}
-      <a class="btn btn-secondary" href="/" role="button">Home</a>
-    {% else %}
-      {% if active_clean == item.url %}
-        <a class="btn btn-secondary dropdown-show show active" data-flip="false" href="/{{ k }}/" role="button" data-bs-toggle="dropdown" aria-expanded="true">{{ k }}</a>
-      {% else %}
-        <a class="btn btn-secondary dropdown-toggle" href="/{{ k }}/" role="button" data-bs-toggle="dropdown" aria-expanded="false">{{ k }}</a>
-      {% endif %}
-
-    <ul class="dropdown-menu">
-      {% for item in v %}
-        {% if action_clean == item.url %}
-        <li><a class="nav-link dropdown-item active" aria-current="true" href="{{ item.url }}">{{ item.label }}</a></li>
+    {% for k,v in navigation.items %}
+        {% if k == "_home" %}
+            <div class="nav">
+                {% if k in action_clean %}
+                    <a class="nav-link active" aria-current="true" href="/">Home</a>
+                {% else %}
+                    <a class="nav-link" href="/">Home</a>
+                {% endif %}
+            </div>
         {% else %}
-        <li><a class="nav-link dropdown-item" href="{{ item.url }}">{{ item.label }}</a></li>
+
+            <div class="nav">
+                {% if k in action_clean %}
+                    <a class="nav-link active" aria-current="true"
+                       href="/{{ k }}/" role="button" >{{ k }}</a>
+                {% else %}
+                    <a class="nav-link"
+                       href="/{{ k }}/" role="button" >{{ k }}</a>
+                {% endif %}
+            </div>
+
+            {% for item in v %}
+                <div class="nav" style="">
+                    {% if action_clean == item.url %}
+                        &nbsp;<a class="nav-link active" aria-current="true"
+                            href="{{ item.url }}">{{ item.label }}</a>
+                    {% else %}
+                        &nbsp;<a class="nav-link"
+                            href="{{ item.url }}">{{ item.label }}</a>
+                    {% endif %}
+                </div>
+            {% endfor %}
         {% endif %}
-      {% endfor %}
-    </ul>
-    {% endif %}
-  </div>
-  {% endfor %}
+    {% endfor %}
 </div>

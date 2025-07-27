@@ -1,4 +1,5 @@
 # g2g
+
 A django app to copy data between internal and external git repo's under control.
 
 A simple django app with a add/edit/delete and index page for each model (like admin)
@@ -6,15 +7,20 @@ A simple django app with a add/edit/delete and index page for each model (like a
 The configuration is done in xauto and the templates are global to the project currently
 
 ## models
+
 We currently have:
 
  - `Server`: the git servers we know about.
- - `Url`: the git urls we know, must relate to Server.
- - `Script`: a script we can use to copy between git repo's, may relate to a `Url`.
- - `CopyType`: how do we copy, automatic, manual, do we maybe need an explicit tag, relates to `Script`.
+ - `Url`: the git urls we know, must relate to Server. (Repo?)
  - `UrlPair`: defined source and target and the copy type, relates to `Url` and `CopyType`.
+ - `CopyType`: how do we copy, automatic, manual, do we maybe need an explicit tag, relates to `Script`.
+ - `Script`: a script we can use to copy between git repo's, may relate to a `Url`.
+ - `Component`: a program or library having features and having its own repo (url)
+ - `Feature`: a feature on a component that needs/is implemented
+ - `Implementation`: keep track of what feature is implemented on what component
 
 ### TODO
+
  - `Run`: trigger a manual copy action with parameters.
 
 ## Index
@@ -38,5 +44,7 @@ The current layout is based on bootstrap 5.3.x , but is very simple otherwise wh
 ## Generic Views
 
 ### AUTO_GUI
+
 Each app can define a file `autoGui.py` where hints are stored for the `genericForm` and `genericIndex`.
-This alows for a very fast insert/update/delete/search to be implemented per app (based on the models used) that can still be overridden if needed.
+This alows for a very fast insert/update/delete/search to be implemented per app,
+ (based on the models used) that can still be overridden if needed.

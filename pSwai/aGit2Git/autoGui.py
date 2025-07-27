@@ -9,9 +9,12 @@ AUTO_GUI: Dict = {
     "navigation": {
         "Server": "server",
         "Url": "url",
+        "UrlPair": "urlpair",
         "Script": "script",
         "CopyType": "copytype",
-        "UrlPair": "urlpair",
+        "Component": "component",
+        "Feature": "feature",
+        "Implementation": "implementation",
     },
     "models": {
         "Server": {
@@ -91,6 +94,47 @@ AUTO_GUI: Dict = {
                 "source": "source__name",
                 "target": "target__name",
                 "copyType": "copyType",
+            },
+        },
+        "Component": {
+            "nav": "component",
+            "fields": {
+                "name": "Name",
+                "description": "Description",
+                "mainRepo": "Url",
+                "internal": "Internal",
+            },
+            "filter": {
+                "name": "name",
+                "mainRepo": "mainRepo__name",
+                "description": "description",
+                "internal": "internal",
+            },
+        },
+        "Feature": {
+            "nav": "feature",
+            "fields": {
+                "name": "Name",
+                "description": "Description",
+            },
+            "filter": {
+                "name": "name",
+                "description": "description",
+            },
+        },
+        "Implementation": {
+            "nav": "implementation",
+            "fields": {
+                "component": "component__name",
+                "feature": "feature__name",
+                "implemented": "Implemented",
+                "description": "Description",
+            },
+            "filter": {
+                "component": "component",
+                "feature": "feature",
+                "implemented": "implemented",
+                "description": "description",
             },
         },
     },

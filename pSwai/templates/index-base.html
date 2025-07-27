@@ -5,14 +5,16 @@
           <div>
             <form action="{{ action_clean }}" method="post">
             {% include "index-paginate.html" %}
+            {% include "index-bulk-action.html" %}
               {% csrf_token %}
               <input class="hidden" type="submit" name="dummy" value="dummy" style="z-index: -1; display: none;"/>
-              <table class="index table table-sm table-hover table-bordered caption-top">
+              <table id="index-main-table" class="index table table-sm table-hover table-bordered caption-top">
                 <caption>List of {{ action_clean }}</caption>
                 <thead>
                   {% include "index-name-row.html" %}
                   {% include "index-filter-row.html" %}
                 </thead>
+
                 <tbody class="table-group-divider">
                 {% for row in data %}
                   {# ------- a data row --------- #}
@@ -27,6 +29,7 @@
                   </tr>
                 {% endfor %}
                 </tbody>
+
                 <tfoot class="table-group-divider">
                   {% include "index-name-row.html" %}
                 </tfoot>

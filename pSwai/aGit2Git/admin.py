@@ -11,6 +11,9 @@ from aGit2Git.models import CopyType
 from aGit2Git.models import UrlPair
 from aGit2Git.models import Server
 from aGit2Git.models import Script
+from aGit2Git.models import Component
+from aGit2Git.models import Feature
+from aGit2Git.models import Implementation
 
 LIST_PER_PAGE = 50
 
@@ -97,4 +100,43 @@ class Script(admin.ModelAdmin):
     )
     list_per_page = LIST_PER_PAGE
     search_fields = ("name",)
+    list_filter = ("updStamp",)
+
+
+@admin.register(Component)
+class Component(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "mainRepo",
+        "description",
+        "updStamp",
+    )
+    list_per_page = LIST_PER_PAGE
+    search_fields = ("name",)
+    list_filter = ("updStamp",)
+
+
+@admin.register(Feature)
+class Feature(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "description",
+        "updStamp",
+    )
+    list_per_page = LIST_PER_PAGE
+    search_fields = ("name",)
+    list_filter = ("updStamp",)
+
+
+@admin.register(Implementation)
+class Implementation(admin.ModelAdmin):
+    list_display = (
+        "component",
+        "feature",
+        "implemented",
+        "description",
+        "updStamp",
+    )
+    list_per_page = LIST_PER_PAGE
+    search_fields = ("component", "feature")
     list_filter = ("updStamp",)

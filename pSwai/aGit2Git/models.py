@@ -16,9 +16,21 @@ from django.db import models
 
 class AbsBase(models.Model):
     # The absolute Basics for all
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    creStamp = models.DateTimeField(auto_now=False, auto_now_add=True, null=False)
-    updStamp = models.DateTimeField(auto_now=True, auto_now_add=False, null=True)
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    creStamp = models.DateTimeField(
+        auto_now=False,
+        auto_now_add=True,
+        null=False,
+    )
+    updStamp = models.DateTimeField(
+        auto_now=True,
+        auto_now_add=False,
+        null=True,
+    )
 
     class Meta:
         abstract = True
@@ -32,8 +44,15 @@ class AbsBase(models.Model):
 
 class AbsCommonName(AbsBase):
     # having Name
-    name = models.CharField(max_length=128, unique=True, null=False)
-    description = models.TextField(blank=True, null=True)
+    name = models.CharField(
+        max_length=128,
+        unique=True,
+        null=False,
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         abstract = True
@@ -57,8 +76,15 @@ class Tag(AbsCommonName):
 
 
 class Server(AbsCommonName):
-    internal = models.BooleanField(default=True)
-    url = models.URLField(max_length=255, unique=True, null=False)
+    internal = models.BooleanField(
+        default=True,
+    )
+
+    url = models.URLField(
+        max_length=255,
+        unique=True,
+        null=False,
+    )
 
     class Meta:
         verbose_name_plural = "Server"
@@ -66,10 +92,29 @@ class Server(AbsCommonName):
 
 
 class Url(AbsCommonName):
-    url = models.URLField(max_length=255, unique=True, null=False)
-    internal = models.BooleanField(default=True)
-    server = models.ForeignKey(Server, on_delete=models.CASCADE, null=False, blank=False, related_name="server_url")
-    branch = models.CharField(max_length=128, unique=False, null=True, blank=True)
+    url = models.URLField(
+        max_length=255,
+        unique=True,
+        null=False,
+    )
+
+    internal = models.BooleanField(
+        default=True,
+    )
+
+    server = models.ForeignKey(
+        Server,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="server_url",
+    )
+    branch = models.CharField(
+        max_length=128,
+        unique=False,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name_plural = "Url"
@@ -81,7 +126,12 @@ class Url(AbsCommonName):
 
 
 class Script(AbsCommonName):
-    repo = models.ForeignKey(Url, on_delete=models.SET_NULL, null=True, blank=True)
+    repo = models.ForeignKey(
+        Url,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name_plural = "Script"
@@ -89,9 +139,19 @@ class Script(AbsCommonName):
 
 
 class CopyType(AbsCommonName):
-    manual = models.BooleanField(default=True)
-    needTag = models.BooleanField(default=False)
-    script = models.ForeignKey(Script, on_delete=models.SET_NULL, null=True, blank=True)
+    manual = models.BooleanField(
+        default=True,
+    )
+    needTag = models.BooleanField(
+        default=False,
+    )
+
+    script = models.ForeignKey(
+        Script,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name_plural = "CopyType"
@@ -99,10 +159,80 @@ class CopyType(AbsCommonName):
 
 
 class UrlPair(AbsCommonName):
-    source = models.ForeignKey(Url, on_delete=models.CASCADE, null=False, blank=False, related_name="sourceUrl")
-    target = models.ForeignKey(Url, on_delete=models.CASCADE, null=False, blank=False, related_name="targetUrl")
-    copyType = models.ForeignKey(CopyType, on_delete=models.SET_NULL, null=True, blank=True)
+    source = models.ForeignKey(
+        Url,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="sourceUrl",
+    )
+
+    target = models.ForeignKey(
+        Url,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="targetUrl",
+    )
+
+    copyType = models.ForeignKey(
+        CopyType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         verbose_name_plural = "UrlPair"
         ordering = ("name",)
+
+
+class Component(AbsCommonName):
+    internal = models.BooleanField(
+        default=True,
+    )
+
+    mainRepo = models.ForeignKey(
+        Url,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name_plural = "Component"
+        ordering = ("name",)
+
+
+class Feature(AbsCommonName):
+
+    class Meta:
+        verbose_name_plural = "Feature"
+        ordering = ("name",)
+
+
+class Implementation(AbsBase):
+    component = models.ForeignKey(
+        Component,
+        on_delete=models.CASCADE,
+    )
+
+    feature = models.ForeignKey(
+        Feature,
+        on_delete=models.CASCADE,
+    )
+    implemented = models.BooleanField(
+        default=False,
+    )
+
+    description = models.TextField(blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural = "Implementation"
+        ordering = ("component", "feature")
+        indexes = [
+            models.Index(fields=["implemented", "feature"]),
+            models.Index(fields=["component", "feature"]),
+            models.Index(fields=["feature", "component"]),
+        ]
+        unique_together = [["component", "feature"]]

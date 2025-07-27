@@ -1,6 +1,7 @@
 #! /bin/bash
 
-LL="160"
+LL="120"
+
 
 doItHere()
 {
@@ -16,6 +17,10 @@ doIt()
 
 main()
 {
+    pip list | grep black || {
+        pip install black pylama setuptools
+    }
+
     # always reformat the project
     ( cd pSwai && doIt )
 

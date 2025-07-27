@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 import sys
 
 from django.contrib import admin
@@ -31,6 +32,7 @@ from appAutoGui import views  # the project view is outside of all apps
 for appName in settings.INSTALLED_APPS:
     if appName.startswith("django."):
         continue
+
     print(f"i see {appName}", file=sys.stderr)
     # now see if we have file autoGui.py
     # and if we have urls.py

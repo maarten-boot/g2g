@@ -232,7 +232,8 @@ def genericIndex(
     # make the filter names and filter the result set
     filterPrefix = getFilterPrefix()
     filterDict = {}
-    filterDict[f"{filterPrefix}_"] = None
+    filterDict[f"{filterPrefix}_D"] = None
+    filterDict[f"{filterPrefix}_E"] = None
     for name, label in fieldNames.items():
         k = f"{filterPrefix}{name}"
         v = postData.get(k)
@@ -382,7 +383,20 @@ def _doRenderFormData(request, app_name, autoGuiDict, fullPath, myForm, xId, wha
     )
 
 
-def _doAddItem(k, model, myForm, postData, fullPath, what, mData, xId, request, autoGuiDict, app_name, **kwargs):
+def _doAddItem(
+    k,
+    model,
+    myForm,
+    postData,
+    fullPath,
+    what,
+    mData,
+    xId,
+    request,
+    autoGuiDict,
+    app_name,
+    **kwargs,
+):
     # asser we have model
     # assert we have myForm
     # assert no xId, no mData
@@ -420,7 +434,20 @@ def _doAddItem(k, model, myForm, postData, fullPath, what, mData, xId, request, 
     )
 
 
-def _doEditItem(k, model, myForm, postData, fullPath, what, mData, xId, request, autoGuiDict, app_name, **kwargs):
+def _doEditItem(
+    k,
+    model,
+    myForm,
+    postData,
+    fullPath,
+    what,
+    mData,
+    xId,
+    request,
+    autoGuiDict,
+    app_name,
+    **kwargs,
+):
     if postData:
         if mData:
             # update the form with the newly posted data
@@ -456,7 +483,20 @@ def _doEditItem(k, model, myForm, postData, fullPath, what, mData, xId, request,
     )
 
 
-def _doDeleteItem(k, model, myForm, postData, fullPath, what, mData, xId, request, autoGuiDict, app_name, **kwargs):
+def _doDeleteItem(
+    k,
+    model,
+    myForm,
+    postData,
+    fullPath,
+    what,
+    mData,
+    xId,
+    request,
+    autoGuiDict,
+    app_name,
+    **kwargs,
+):
     if "delete" in postData:
         return _deleteAndRedirect(
             model,
@@ -495,14 +535,53 @@ def genericForm(
 
     if what == "add":
         # we see add as get and as post
-        return _doAddItem(k, model, myForm, postData, fullPath, what, mData, xId, request, autoGuiDict, app_name, **kwargs)
+        return _doAddItem(
+            k,
+            model,
+            myForm,
+            postData,
+            fullPath,
+            what,
+            mData,
+            xId,
+            request,
+            autoGuiDict,
+            app_name,
+            **kwargs,
+        )
 
     if what == "delete":
         # we see delete as get and as post
-        return _doDeleteItem(k, model, myForm, postData, fullPath, what, mData, xId, request, autoGuiDict, app_name, **kwargs)
+        return _doDeleteItem(
+            k,
+            model,
+            myForm,
+            postData,
+            fullPath,
+            what,
+            mData,
+            xId,
+            request,
+            autoGuiDict,
+            app_name,
+            **kwargs,
+        )
 
     if what == "edit":
-        return _doEditItem(k, model, myForm, postData, fullPath, what, mData, xId, request, autoGuiDict, app_name, **kwargs)
+        return _doEditItem(
+            k,
+            model,
+            myForm,
+            postData,
+            fullPath,
+            what,
+            mData,
+            xId,
+            request,
+            autoGuiDict,
+            app_name,
+            **kwargs,
+        )
 
     # not add, edit or delete
     if debugOn():

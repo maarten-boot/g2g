@@ -7,6 +7,9 @@ from aGit2Git.models import (
     Url,
     UrlPair,
     CopyType,
+    Component,
+    Feature,
+    Implementation,
 )
 
 from aGit2Git.autoGui import AUTO_GUI
@@ -44,4 +47,22 @@ class CopyTypeForm(ModelForm):
 class UrlPairForm(ModelForm):
     class Meta:
         model = UrlPair
+        fields = _gf(model)
+
+
+class ComponentForm(ModelForm):
+    class Meta:
+        model = Component
+        fields = _gf(model)
+
+
+class FeatureForm(ModelForm):
+    class Meta:
+        model = Feature
+        fields = _gf(model)
+
+
+class ImplementationForm(ModelForm):
+    class Meta:
+        model = Implementation
         fields = _gf(model)
