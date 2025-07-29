@@ -4,8 +4,8 @@ from django.forms import ModelForm
 from aGit2Git.models import (
     Server,
     Script,
-    Url,
-    UrlPair,
+    Repo,
+    RepoPair,
     CopyType,
     Component,
     Feature,
@@ -33,9 +33,9 @@ class ScriptForm(ModelForm):
         fields = _gf(model)
 
 
-class UrlForm(ModelForm):
+class RepoForm(ModelForm):
     class Meta:
-        model = Url
+        model = Repo
         fields = _gf(model)
 
 
@@ -45,9 +45,9 @@ class CopyTypeForm(ModelForm):
         fields = _gf(model)
 
 
-class UrlPairForm(ModelForm):
+class RepoPairForm(ModelForm):
     class Meta:
-        model = UrlPair
+        model = RepoPair
         fields = _gf(model)
 
 
@@ -67,6 +67,7 @@ class ImplementationForm(ModelForm):
     class Meta:
         model = Implementation
         fields = _gf(model)
+
 
 class DependenciesForm(ModelForm):
     class Meta:

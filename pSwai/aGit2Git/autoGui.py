@@ -8,8 +8,8 @@ AUTO_GUI: Dict = {
     "max_per_page": 5,
     "navigation": {
         "Server": "server",
-        "Url": "url",
-        "UrlPair": "urlpair",
+        "Repo": "repo",
+        "RepoPair": "repopair",
         "CopyType": "copytype",
         "Script": "script",
         "_break_": "_break_",
@@ -34,8 +34,8 @@ AUTO_GUI: Dict = {
                 "internal": "internal",
             },
         },
-        "Url": {
-            "nav": "url",
+        "Repo": {
+            "nav": "repo",
             "fields": {
                 "name": "Name",
                 "description": "Description",
@@ -49,6 +49,23 @@ AUTO_GUI: Dict = {
                 "server": "server__name",
                 "url": "url",
                 "branch": "branch",
+            },
+        },
+        "RepoPair": {
+            "nav": "repopair",
+            "fields": {
+                "name": "Name",
+                "description": "Description",
+                "copyType": "CopyType",
+                "source": "Source",
+                "target": "Target",
+            },
+            "filter": {
+                "name": "name",
+                "description": "description",
+                "source": "source__name",
+                "target": "target__name",
+                "copyType": "copyType",
             },
         },
         "Script": {
@@ -81,29 +98,12 @@ AUTO_GUI: Dict = {
                 "script": "script__name",
             },
         },
-        "UrlPair": {
-            "nav": "urlpair",
-            "fields": {
-                "name": "Name",
-                "description": "Description",
-                "copyType": "CopyType",
-                "source": "Source",
-                "target": "Target",
-            },
-            "filter": {
-                "name": "name",
-                "description": "description",
-                "source": "source__name",
-                "target": "target__name",
-                "copyType": "copyType",
-            },
-        },
         "Component": {
             "nav": "component",
             "fields": {
                 "name": "Name",
                 "description": "Description",
-                "mainRepo": "Url",
+                "mainRepo": "Repo",
                 "internal": "Internal",
             },
             "filter": {

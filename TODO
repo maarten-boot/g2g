@@ -1,7 +1,7 @@
 # Todo
 
  - add filter settings to session as app_name/filters
- - add default update to stay in edit mode , not add after enter
+ - test filter bool fields
 
 ## bulk actions
 

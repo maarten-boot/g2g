@@ -6,10 +6,10 @@ from django.contrib import admin
 # from django.urls import reverse
 
 # from aGit2Git.models import Tag
-from aGit2Git.models import Url
-from aGit2Git.models import CopyType
-from aGit2Git.models import UrlPair
 from aGit2Git.models import Server
+from aGit2Git.models import Repo
+from aGit2Git.models import RepoPair
+from aGit2Git.models import CopyType
 from aGit2Git.models import Script
 from aGit2Git.models import Component
 from aGit2Git.models import Feature
@@ -19,8 +19,8 @@ from aGit2Git.models import Dependencies
 LIST_PER_PAGE = 50
 
 
-@admin.register(Url)
-class Url(admin.ModelAdmin):
+@admin.register(Repo)
+class Repo(admin.ModelAdmin):
     list_display = (
         "name",
         "internal",
@@ -56,8 +56,8 @@ class CopyType(admin.ModelAdmin):
     )
 
 
-@admin.register(UrlPair)
-class UrlPair(admin.ModelAdmin):
+@admin.register(RepoPair)
+class RepoPair(admin.ModelAdmin):
     list_display = (
         "name",
         "description",
@@ -143,14 +143,15 @@ class Implementation(admin.ModelAdmin):
     search_fields = ("component", "feature")
     list_filter = ("updStamp",)
 
+
 @admin.register(Dependencies)
 class Dependencies(admin.ModelAdmin):
     list_display = (
         "component",
-        "usage",
+        "uses",
         "description",
         "updStamp",
     )
     list_per_page = LIST_PER_PAGE
-    search_fields = ("component", "usage")
+    search_fields = ("component", "uses")
     list_filter = ("updStamp",)

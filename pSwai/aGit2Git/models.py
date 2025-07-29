@@ -91,7 +91,7 @@ class Server(AbsCommonName):
         ordering = ("name",)
 
 
-class Url(AbsCommonName):
+class Repo(AbsCommonName):
     url = models.URLField(
         max_length=255,
         unique=True,
@@ -117,7 +117,7 @@ class Url(AbsCommonName):
     )
 
     class Meta:
-        verbose_name_plural = "Url"
+        verbose_name_plural = "Repo"
         indexes = [
             models.Index(fields=["name", "branch"]),
         ]
@@ -127,7 +127,7 @@ class Url(AbsCommonName):
 
 class Script(AbsCommonName):
     repo = models.ForeignKey(
-        Url,
+        Repo,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -158,9 +158,9 @@ class CopyType(AbsCommonName):
         ordering = ("name",)
 
 
-class UrlPair(AbsCommonName):
+class RepoPair(AbsCommonName):
     source = models.ForeignKey(
-        Url,
+        Repo,
         on_delete=models.CASCADE,
         null=False,
         blank=False,
@@ -168,7 +168,7 @@ class UrlPair(AbsCommonName):
     )
 
     target = models.ForeignKey(
-        Url,
+        Repo,
         on_delete=models.CASCADE,
         null=False,
         blank=False,
@@ -183,7 +183,7 @@ class UrlPair(AbsCommonName):
     )
 
     class Meta:
-        verbose_name_plural = "UrlPair"
+        verbose_name_plural = "RepoPair"
         ordering = ("name",)
 
 
@@ -193,7 +193,7 @@ class Component(AbsCommonName):
     )
 
     mainRepo = models.ForeignKey(
-        Url,
+        Repo,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

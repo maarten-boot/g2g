@@ -10,14 +10,18 @@ The configuration is done in xauto and the templates are global to the project c
 
 We currently have:
 
+Git2Git
  - `Server`: the git servers we know about.
  - `Url`: the git urls we know, must relate to Server. (Repo?)
  - `UrlPair`: defined source and target and the copy type, relates to `Url` and `CopyType`.
  - `CopyType`: how do we copy, automatic, manual, do we maybe need an explicit tag, relates to `Script`.
  - `Script`: a script we can use to copy between git repo's, may relate to a `Url`.
+
+Components
  - `Component`: a program or library having features and having its own repo (url)
  - `Feature`: a feature on a component that needs/is implemented
  - `Implementation`: keep track of what feature is implemented on what component
+ - `Dependencies`: what component uses what other component
 
 ### TODO
 
