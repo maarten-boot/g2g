@@ -17,7 +17,7 @@ from appAutoGui.xauto import (
     mapForm,
     makeIndexFields,
     getFilterPrefix,
-    getFields,
+    getModelData2,
     maxPerPagePaginate,
     navigation,
 )
@@ -34,7 +34,7 @@ def _getFilterHint(
 ) -> str:
     # return the filter hint we use to actually filter,
     # so we can use fk fields also to filter on
-    fields = getFields(autoGuiDict, modelName)
+    fields = getModelData2(autoGuiDict, modelName)
     k = "filter"
 
     if k not in fields:
@@ -142,125 +142,6 @@ def _getPostData(request):
     return postData
 
 
-def doPagingWithSearchFilters():
-    pass
-
-
-def doPerPage(request, autoGuiDict, postData):
-    maxPerPage = maxPerPagePaginate(autoGuiDict)
-    perPage = None
-
-    k = "perPage"
-    k2 = "perPage2"
-    if k in request.session:
-        perPage = request.session[k]
-
-    if debugOn():
-        print(postData, file=sys.stderr)
-
-    for j in [k, k2]:
-        z = postData.get(j)
-        if z:
-            if int(z) != request.session[k]:
-                perPage = int(z)
-                if perPage <= 0:
-                    perPage = maxPerPage
-                if perPage > 1000:
-                    perPage = 1000
-
-    if perPage is None:
-        perPage = maxPerPage
-
-    request.session[k] = perPage
-    return perPage
-
-
-def genericIndex(
-    autoGuiDict,
-    app_name,
-    request,
-    *args,
-    **kwargs,
-):
-    fullPath = request.get_full_path()
-    splitPath = _splitPath(fullPath)
-
-    if len(splitPath) < 2:
-        # we have no actual model now
-        # we are either at the top level len==0 (home) or at the app level len ==1
-        if len(splitPath) == 1:
-            # gather info on this app and show that
-            pass
-        else:
-            # gather info on the project ans show that
-            pass
-        pass
-
-    model = None
-    if autoGuiDict and len(autoGuiDict) and app_name:
-        model = mapModel(
-            autoGuiDict,
-            app_name,
-            fullPath,
-        )
-
-    postData = _getPostData(request)
-    perPage = doPerPage(request, autoGuiDict, postData)
-
-    page_obj = None
-    fieldNames = {}
-
-    if model:
-        item_list = _getSearchDataWithFilterApplied(autoGuiDict, model, postData)
-        paginator = Paginator(item_list, perPage)
-        page_number = request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
-        fieldNames = getFields(autoGuiDict, model.__name__).get(
-            "fields",
-        )
-
-    names = []
-    data = []
-    if autoGuiDict and len(autoGuiDict) and app_name:
-        names, data = makeIndexFields(
-            autoGuiDict,
-            app_name,
-            fullPath,
-            page_obj,
-        )
-
-    # make the filter names and filter the result set
-    filterPrefix = getFilterPrefix()
-    filterDict = {}
-    filterDict[f"{filterPrefix}_D"] = None
-    filterDict[f"{filterPrefix}_E"] = None
-    for name, label in fieldNames.items():
-        k = f"{filterPrefix}{name}"
-        v = postData.get(k)
-        filterDict[k] = v
-
-    c1 = _startContext(
-        autoGuiDict,
-        app_name,
-        request,
-    )
-    c2 = {
-        "perPage": perPage,
-        "page_obj": page_obj,
-        "data": data,
-        "names": names,
-        "postData": postData,
-        "filter": filterDict,
-    }
-    context = c1 | c2  # merge the dicts
-
-    return render(
-        request,
-        f"{app_name}/index.html",
-        context,
-    )
-
-
 def _deleteAndRedirect(
     model,
     postData,
@@ -346,15 +227,6 @@ def _getPrimaryKey(k, **kwargs):
         if debugOn():
             print(f"{k} exists: {xId}", file=sys.stderr)
     return xId
-
-
-def getModelData(model, xId):
-    mData = None
-    if model and xId:
-        mData = model.objects.get(pk=xId)
-        if debugOn():
-            print(f"mData: {mData}", file=sys.stderr)
-    return mData
 
 
 def _doRenderFormData(request, app_name, autoGuiDict, fullPath, myForm, xId, what):
@@ -512,6 +384,140 @@ def _doDeleteItem(
         myForm,
         xId,
         what,
+    )
+
+
+# PUBLIC
+
+
+def getModelData(model, xId):
+    """
+    fetch the data from a mode and a pk
+    """
+    mData = None
+    if model and xId:
+        mData = model.objects.get(pk=xId)
+        if debugOn():
+            print(f"mData: {mData}", file=sys.stderr)
+    return mData
+
+
+def doPagingWithSearchFilters():
+    pass
+
+
+def doPerPage(request, autoGuiDict, postData):
+    maxPerPage = maxPerPagePaginate(autoGuiDict)
+    perPage = None
+
+    k = "perPage"
+    k2 = "perPage2"
+    if k in request.session:
+        perPage = request.session[k]
+
+    if debugOn():
+        print(postData, file=sys.stderr)
+
+    for j in [k, k2]:
+        z = postData.get(j)
+        if z:
+            if int(z) != request.session[k]:
+                perPage = int(z)
+                if perPage <= 0:
+                    perPage = maxPerPage
+                if perPage > 1000:
+                    perPage = 1000
+
+    if perPage is None:
+        perPage = maxPerPage
+
+    request.session[k] = perPage
+    return perPage
+
+
+def genericIndex(
+    autoGuiDict,
+    app_name,
+    request,
+    *args,
+    **kwargs,
+):
+    fullPath = request.get_full_path()
+    splitPath = _splitPath(fullPath)
+
+    if len(splitPath) < 2:
+        # we have no actual model now
+        # we are either at the top level len==0 (home) or at the app level len ==1
+        if len(splitPath) == 1:
+            # gather info on this app and show that
+            pass
+        else:
+            # gather info on the project ans show that
+            pass
+        pass
+
+    model = None
+    if autoGuiDict and len(autoGuiDict) and app_name:
+        model = mapModel(
+            autoGuiDict,
+            app_name,
+            fullPath,
+        )
+
+    postData = _getPostData(request)
+    perPage = doPerPage(request, autoGuiDict, postData)
+
+    page_obj = None
+    fieldNames = {}
+
+    if model:
+        item_list = _getSearchDataWithFilterApplied(autoGuiDict, model, postData)
+        paginator = Paginator(item_list, perPage)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+        fieldNames = getModelData2(autoGuiDict, model.__name__).get(
+            "fields",
+        )
+
+    names = []
+    data = []
+    if autoGuiDict and len(autoGuiDict) and app_name:
+        names, data = makeIndexFields(
+            autoGuiDict,
+            app_name,
+            fullPath,
+            page_obj,
+        )
+
+    # make the filter names and filter the result set
+    filterPrefix = getFilterPrefix()
+    filterDict = {}
+    filterDict[f"{filterPrefix}_D"] = None
+    filterDict[f"{filterPrefix}_E"] = None
+    for name, label in fieldNames.items():
+        k = f"{filterPrefix}{name}"
+        v = postData.get(k)
+        filterDict[k] = v
+
+    c1 = _startContext(
+        autoGuiDict,
+        app_name,
+        request,
+    )
+    c2 = {
+        "perPage": perPage,
+        "page_obj": page_obj,
+        "data": data,
+        "names": names,
+        "postData": postData,
+        "filter": filterDict,
+    }
+    context = c1 | c2  # merge the dicts
+
+    return render(
+        request,
+        f"{app_name}/index.html",
+        context,
     )
 
 

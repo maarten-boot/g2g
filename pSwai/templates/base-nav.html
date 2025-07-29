@@ -1,5 +1,6 @@
 <div class="nav nav-pills flex-sm-column">
     {% for k,v in navigation.items %}
+
         {% if k == "_home" %}
             <div class="nav">
                 {% if k in action_clean %}
@@ -9,7 +10,6 @@
                 {% endif %}
             </div>
         {% else %}
-
             <div class="nav">
                 {% if k in action_clean %}
                     <a class="nav-link active" aria-current="true"
@@ -21,15 +21,19 @@
             </div>
 
             {% for item in v %}
-                <div class="nav" style="">
-                    {% if action_clean == item.url %}
-                        &nbsp;<a class="nav-link active" aria-current="true"
-                            href="{{ item.url }}">{{ item.label }}</a>
-                    {% else %}
-                        &nbsp;<a class="nav-link"
-                            href="{{ item.url }}">{{ item.label }}</a>
-                    {% endif %}
-                </div>
+                {% if item.label == "_break_" %}
+                    <hr>
+                {% else %}
+                    <div class="nav" style="">
+                        {% if action_clean == item.url %}
+                            &nbsp;<a class="nav-link active" aria-current="true"
+                                href="{{ item.url }}">{{ item.label }}</a>
+                        {% else %}
+                            &nbsp;<a class="nav-link"
+                                href="{{ item.url }}">{{ item.label }}</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% endfor %}
         {% endif %}
     {% endfor %}

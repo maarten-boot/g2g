@@ -10,11 +10,13 @@ AUTO_GUI: Dict = {
         "Server": "server",
         "Url": "url",
         "UrlPair": "urlpair",
-        "Script": "script",
         "CopyType": "copytype",
+        "Script": "script",
+        "_break_": "_break_",
         "Component": "component",
         "Feature": "feature",
         "Implementation": "implementation",
+        "Dependencies": "dependencies",
     },
     "models": {
         "Server": {
@@ -127,13 +129,28 @@ AUTO_GUI: Dict = {
             "fields": {
                 "component": "component__name",
                 "feature": "feature__name",
+                "requested": "Requested",
                 "implemented": "Implemented",
                 "description": "Description",
             },
             "filter": {
                 "component": "component",
                 "feature": "feature",
+                "requested": "requested",
                 "implemented": "implemented",
+                "description": "description",
+            },
+        },
+        "Dependencies": {
+            "nav": "dependencies",
+            "fields": {
+                "component": "user__name",
+                "uses": "used__name",
+                "description": "Description",
+            },
+            "filter": {
+                "component": "component",
+                "uses": "uses",
                 "description": "description",
             },
         },

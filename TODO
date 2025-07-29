@@ -1,9 +1,14 @@
 # Todo
 
  - add filter settings to session as app_name/filters
+ - add default update to stay in edit mode , not add after enter
 
 ## bulk actions
 
  - we have the selector for bulkaction but nothing else
 
-rename url to repo ?
+## rework models to include namespace for the server
+
+server -> namespace -> url
+
+validators for some models (external server, external url)

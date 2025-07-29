@@ -10,14 +10,15 @@ from aGit2Git.models import (
     Component,
     Feature,
     Implementation,
+    Dependencies,
 )
 
 from aGit2Git.autoGui import AUTO_GUI
-from appAutoGui.xauto import getFields
+from appAutoGui.xauto import getModelData2
 
 
 def _gf(model):
-    return getFields(AUTO_GUI, model.__name__).get("fields").keys()
+    return getModelData2(AUTO_GUI, model.__name__).get("fields").keys()
 
 
 class ServerForm(ModelForm):
@@ -65,4 +66,9 @@ class FeatureForm(ModelForm):
 class ImplementationForm(ModelForm):
     class Meta:
         model = Implementation
+        fields = _gf(model)
+
+class DependenciesForm(ModelForm):
+    class Meta:
+        model = Dependencies
         fields = _gf(model)

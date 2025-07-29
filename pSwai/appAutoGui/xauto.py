@@ -15,6 +15,18 @@ from typing import (
 
 
 def _importItem(itemStr: str) -> Any:
+    """Import a item from its module
+    itemStr: str is in the format module.item
+      where item itself could have ' in it
+      as we only split on the first '.'
+
+    we first split the string in module and item parts
+    then import the module
+    and from the module we import the item
+
+    we returen the item or raise a error
+    """
+
     module_path, itemName = itemStr.rsplit(".", 1)
     try:
         module = import_module(module_path)
@@ -29,6 +41,18 @@ def _importItem(itemStr: str) -> Any:
 def _importClass(
     klassStr: str,
 ) -> Any:
+    """Import a class from its module
+    klassStr: str is in the format module.item
+      where klass itself could have ' in it
+      as we only split on the first '.'
+
+    we first split the string in module and klass parts
+    then import the module
+    and from the module we import the klass
+
+    we returen the klass or raise a error
+    """
+
     module_path, class_name = klassStr.rsplit(".", 1)
     try:
         module = import_module(module_path)
@@ -40,54 +64,12 @@ def _importClass(
     return klass
 
 
-def getNavNames(
-    autoGuiDict: Dict[str, Any],
-) -> Dict[str, str]:
-    ret: Dict[str, str] = {}
-    k = "models"
-    for name, v in autoGuiDict[k].items():
-        if "nav" not in v:
-            continue
-        ret[v["nav"]] = name
-    return ret
-
-
-def mapForm(
-    autoGuiDict,
-    app: str,
-    fp: str,
-    *args,
-    **kwargs,
-) -> Any:
-    xList = getNavNames(autoGuiDict)
-    for nav, modelName in xList.items():
-        if fp.startswith(f"/{app}/{nav}/"):
-            class_str = ".".join([app, "forms", modelName + "Form"])
-            klass = _importClass(class_str)
-            return klass(*args, **kwargs)
-    return None
-
-
-def mapModel(
-    autoGuiDict,
-    app: str,
-    fp,
-):
-    xList = getNavNames(autoGuiDict)
-    for nav, modelName in xList.items():
-        if fp.startswith(f"/{app}/{nav}/"):
-            class_str = ".".join([app, "models", modelName])
-            klass = _importClass(class_str)
-            return klass
-    return None
-
-
 def _urlGenOne(
     app,
     index,
     form,
     nav: str,
-):
+) -> List[Any]:
     ll = [
         path(f"{app}/", index, name=f"{app}"),
         path(f"{app}/{nav}/", index, name=f"{app}_{nav}"),
@@ -98,8 +80,126 @@ def _urlGenOne(
     return ll
 
 
+def _mkDeleteLink(
+    pk: str,
+):
+    zz = [
+        "<input",
+        "   class='form-check-input'",
+        "   type='checkbox'",
+        f"  value='{pk}'" "   name='action{{ action_clean }}'",
+        "  id='action{{ action_clean }}{{ " + f"{pk}" + "}}'",
+        ">",
+    ]
+    return " ".join(zz)
+
+
+def _makeEditLink(
+    pk: str,
+    name: str,
+):
+    what = "edit"
+    return (
+        "<a type='button' class='btn btn-sm btn-outline-info' href='{{ action_clean }}"
+        + what
+        + "/{{"
+        + f"{pk}"
+        + "}}'>&nbsp;</a>"
+    )
+    return "<a href='{{ action_clean }}" + what + "/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
+
+
+def _defaultFieldTemplate(
+    name,
+):
+    return "{{ " + f"{name}" + " }}"
+
+
+def _addFields(
+    xFields: Dict[str, Any],  # by ref so in and out
+    ff,
+    skipList,
+) -> None:
+    for k, v in ff.items():
+        if k in skipList:
+            continue
+        xFields[v] = _defaultFieldTemplate(k)
+
+
+def _addDefaultFields(
+    ff,
+) -> Dict[str, Any]:
+    """
+    Add extra columns for Delete: _D and Edit: _E
+    """
+    xFields: Dict[str, Any] = {
+        "_D": _mkDeleteLink("id"),
+        "_E": _makeEditLink("id", "id"),
+    }
+    _addFields(xFields, ff, [])
+    return xFields
+
+
+def _getMyFields(
+    autoGuiDict: Dict[str, Any],
+    app,
+    fp,
+):
+    model = mapModel(autoGuiDict, app, fp)
+    if not model:
+        return {}
+
+    fields: Dict[str, str] = getModelData2(
+        autoGuiDict,
+        model.__name__,
+    ).get("fields")
+
+    navNames = getNavNames(autoGuiDict).keys()
+    for name in navNames:
+        if fp.startswith(f"/{app}/{name}/"):
+            return _addDefaultFields(fields)
+
+    return {}
+
+
+def _makeFieldsDictFromModel(
+    autoGuiDict: Dict[str, Any],
+    instance,
+) -> Dict[str, Any]:
+    ret: Dict[str, Any] = {}
+
+    if not instance:
+        return ret
+
+    pk_name = "id"
+    ret[pk_name] = getattr(instance, pk_name)
+
+    modelName = instance.__class__.__name__
+    fields = getModelData2(
+        autoGuiDict,
+        modelName,
+    ).get("fields")
+    for name in fields.keys():
+        ret[name] = getattr(instance, name)
+
+    return ret
+
+
+def _makeHtmlRender(
+    tempString,
+    item,
+):
+    t = Template(tempString)
+    c = Context(item)
+    html = t.render(c)
+    return html
+
+
+# PUBLIC
+
+
 def urlGenAll(
-    autoGuiDict,
+    autoGuiDict: Dict[str, Any],
     app: str,
     index,
     form,
@@ -113,10 +213,11 @@ def urlGenAll(
     return urlPatternList
 
 
-def getFields(
-    autoGuiDict,
+def getModelData2(
+    autoGuiDict: Dict[str, Any],
     modelName: str,
 ) -> Dict[str, str]:
+    """get the fields for this model from the autoGuiDict"""
     k = "models"
     if modelName in autoGuiDict[k]:
         return autoGuiDict[k][modelName]
@@ -124,7 +225,7 @@ def getFields(
 
 
 def maxPerPagePaginate(
-    autoGuiDict,
+    autoGuiDict: Dict[str, Any],
 ) -> int:
     k = "max_per_page"
     if k in autoGuiDict:
@@ -147,6 +248,60 @@ def appNavigation(
             }
             rr.append(data)
     return rr
+
+
+def getNavNames(
+    autoGuiDict: Dict[str, Any],
+) -> Dict[str, str]:
+    """from the given autoGuiDict extract all nav parts in each model
+    autoGuiDict: Dict[str,Any]: we pass the auto Gui dict as it holds all info
+    """
+    ret: Dict[str, str] = {}
+    k = "models"
+    for name, v in autoGuiDict[k].items():
+        if "nav" not in v:
+            continue
+        ret[v["nav"]] = name
+    return ret
+
+
+def mapForm(
+    autoGuiDict: Dict[str, Any],
+    app: str,
+    fp: str,
+    *args,
+    **kwargs,
+) -> Any:
+    """
+    autoGuiDict: Dict[str, Any]"
+    app: str:
+    fp: str:
+    *args:
+    **kwargs"
+
+    """
+    navDict = getNavNames(autoGuiDict)
+    for nav, modelName in navDict.items():
+        if fp.startswith(f"/{app}/{nav}/"):
+            class_str = ".".join([app, "forms", modelName + "Form"])
+            klass = _importClass(class_str)
+            return klass(*args, **kwargs)
+    return None
+
+
+def mapModel(
+    autoGuiDict: Dict[str, Any],
+    app: str,
+    fp,
+) -> Any:
+    """ """
+    navDict = getNavNames(autoGuiDict)
+    for nav, modelName in navDict.items():
+        if fp.startswith(f"/{app}/{nav}/"):
+            class_str = ".".join([app, "models", modelName])
+            klass = _importClass(class_str)
+            return klass
+    return None
 
 
 def getKnownApps():
@@ -177,135 +332,32 @@ def navigation():
     return nav
 
 
-def _mkDeleteLink(
-    pk: str,
-):
-    zz = [
-        "<input",
-        "   class='form-check-input'",
-        "   type='checkbox'",
-        f"  value='{pk}'" "   name='action{{ action_clean }}'",
-        f"  id='action{{ action_clean }}{{ " + f"{pk}" + "}}'",
-        ">",
-    ]
-    return " ".join(zz)
-
-
-def _makeEditLink(
-    pk: str,
-    name: str,
-):
-    what = "edit"
-    return (
-        "<a type='button' class='btn btn-sm btn-outline-info' href='{{ action_clean }}"
-        + what
-        + "/{{"
-        + f"{pk}"
-        + "}}'>&nbsp;</a>"
-    )
-    return "<a href='{{ action_clean }}" + what + "/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
-
-
-def _defaultFieldTemplate(
-    name,
-):
-    return "{{ " + f"{name}" + " }}"
-
-
-def _addFields(
-    xFields,
-    ff,
-    skipList,
-):
-    for k, v in ff.items():
-        if k in skipList:
-            continue
-        xFields[v] = _defaultFieldTemplate(k)
-
-
-def _xFieldsDefault(
-    ff,
-):
-    xFields = {
-        "_D": _mkDeleteLink("id"),
-        "_E": _makeEditLink("id", "id"),
-    }
-    # _addFields(xFields, ff, ["name"])
-    _addFields(xFields, ff, [])
-    return xFields
-
-
-def _getMyFields(
-    autoGuiDict,
-    app,
-    fp,
-):
-    model = mapModel(autoGuiDict, app, fp)
-    if not model:
-        return {}
-
-    ff = getFields(autoGuiDict, model.__name__).get("fields")
-    xList = getNavNames(autoGuiDict).keys()
-    for name in xList:
-        if fp.startswith(f"/{app}/{name}/"):
-            return _xFieldsDefault(ff)
-
-    return {}
-
-
-def _makeDictFromModel(
-    autoGuiDict,
-    instance,
-):
-    ret = {}
-    if not instance:
-        return ret
-
-    modelName = instance.__class__.__name__
-    name = "id"
-    ret[name] = getattr(instance, name)
-    ff = getFields(autoGuiDict, modelName).get("fields")
-    for name in ff.keys():
-        ret[name] = getattr(instance, name)
-
-    return ret
-
-
 def getFilterPrefix():
     return "filter-"
 
 
-def _makeHtmlRender(
-    tempString,
-    item,
-):
-    t = Template(tempString)
-    c = Context(item)
-    html = t.render(c)
-    return html
-
-
 def makeIndexFields(
-    autoGuiDict,
+    autoGuiDict: Dict[str, Any],
     app,
     fp,
     page_obj,
 ) -> Tuple[List[str], List[Dict[str, Any]]]:
-    xFields = _getMyFields(autoGuiDict, app, fp)
+    myFields = _getMyFields(autoGuiDict, app, fp)
 
     data = []
     names = []
+
     if page_obj:
-        for item in page_obj:
-            fieldData = _makeDictFromModel(autoGuiDict, item)
+        for instance in page_obj:
+            fieldData = _makeFieldsDictFromModel(autoGuiDict, instance)
             fieldData["action"] = fp
             fieldData["action_clean"] = fp.split("?")[0]
 
             fields = {}
-            for k, v in xFields.items():
-                if k not in names:
-                    names.append(k)
-                html = _makeHtmlRender(v, fieldData)
-                fields[k] = html
+            for name, v in myFields.items():
+                if name not in names:
+                    names.append(name)
+                fields[name] = _makeHtmlRender(v, fieldData)
             data.append(fields)
+
     return names, data

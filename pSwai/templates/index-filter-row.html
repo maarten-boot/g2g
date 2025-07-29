@@ -2,15 +2,15 @@
 {% load startswith %}
 <tr>
   {% for k,v in filter.items %}
-  <th scope="col" class="col-sm-auto">
-    {% if k|startswith:'filter-_' %}
-      {% if k == 'filter-_E' %}Edit
+    <th scope="col" class="col-sm-auto">
+      {% if k|startswith:'filter-_' %}
+        {% if k == 'filter-_E' %}Edit
+        {% endif %}
+        {% if k == 'filter-_D' %}Del
+        {% endif %}
+      {% else %}
+        <input class="input-filter-text" type="text" name="{{ k }}" value="{{ v|default_if_none:"" }}" id="{{ k }}" onchange="myFunction()" />
       {% endif %}
-      {% if k == 'filter-_D' %}Del
-      {% endif %}
-    {% else %}
-      <input class="input-filter-text" type="text" name="{{ k }}" value="{{ v|default_if_none:"" }}" id="{{ k }}" onchange="myFunction()" />
-    {% endif %}
-  </th>
+    </th>
   {% endfor %}
 </tr>

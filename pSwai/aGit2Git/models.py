@@ -221,18 +221,51 @@ class Implementation(AbsBase):
         Feature,
         on_delete=models.CASCADE,
     )
+    requested = models.BooleanField(
+        default=False,  # if not requested we dont need to implement it
+    )
     implemented = models.BooleanField(
         default=False,
     )
 
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         verbose_name_plural = "Implementation"
         ordering = ("component", "feature")
         indexes = [
+            models.Index(fields=["requested", "feature"]),
             models.Index(fields=["implemented", "feature"]),
             models.Index(fields=["component", "feature"]),
             models.Index(fields=["feature", "component"]),
         ]
         unique_together = [["component", "feature"]]
+
+
+class Dependencies(AbsBase):
+    component = models.ForeignKey(
+        Component,
+        on_delete=models.CASCADE,
+        related_name="user",
+    )
+    uses = models.ForeignKey(
+        Component,
+        on_delete=models.CASCADE,
+        related_name="used",
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name_plural = "Dependencies"
+        ordering = ("component", "uses")
+        indexes = [
+            models.Index(fields=["component", "uses"]),
+            models.Index(fields=["uses", "component"]),
+        ]
+        unique_together = [["component", "uses"]]

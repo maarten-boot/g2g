@@ -14,6 +14,7 @@ from aGit2Git.models import Script
 from aGit2Git.models import Component
 from aGit2Git.models import Feature
 from aGit2Git.models import Implementation
+from aGit2Git.models import Dependencies
 
 LIST_PER_PAGE = 50
 
@@ -133,10 +134,23 @@ class Implementation(admin.ModelAdmin):
     list_display = (
         "component",
         "feature",
+        "requested",
         "implemented",
         "description",
         "updStamp",
     )
     list_per_page = LIST_PER_PAGE
     search_fields = ("component", "feature")
+    list_filter = ("updStamp",)
+
+@admin.register(Dependencies)
+class Dependencies(admin.ModelAdmin):
+    list_display = (
+        "component",
+        "usage",
+        "description",
+        "updStamp",
+    )
+    list_per_page = LIST_PER_PAGE
+    search_fields = ("component", "usage")
     list_filter = ("updStamp",)
