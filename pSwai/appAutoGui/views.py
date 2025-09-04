@@ -25,6 +25,7 @@ def form(request, *args, **kwargs):
 
 
 def index(request, *args, **kwargs):
+    """force mandatory login before you can access the index (search) page"""
     if request.method == "POST" and request.user.is_authenticated is False:
         print(f"HH: {request.POST}", file=sys.stderr)
         xform = forms.LoginForm(request.POST)

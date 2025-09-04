@@ -6,7 +6,7 @@ from typing import (
 
 AUTO_GUI: Dict = {
     "max_per_page": 5,
-    "navigation": {
+    "navigation": { # label , internal name used on model.nav:
         "Server": "server",
         "Repo": "repo",
         "RepoPair": "repopair",
@@ -20,14 +20,14 @@ AUTO_GUI: Dict = {
     },
     "models": {
         "Server": {
-            "nav": "server",
-            "fields": {
+            "nav": "server", # the name used in the Navigation
+            "fields": { # field_name -> Label
                 "name": "Name",
                 "description": "Description",
                 "url": "Url",
                 "internal": "Internal",
             },
-            "filter": {
+            "filter": { # field name , filter_hint (icontains)
                 "name": "name",
                 "description": "description",
                 "url": "url",
@@ -127,15 +127,15 @@ AUTO_GUI: Dict = {
         "Implementation": {
             "nav": "implementation",
             "fields": {
-                "component": "component__name",
-                "feature": "feature__name",
+                "component": "Component",
+                "feature": "Feature",
                 "requested": "Requested",
                 "implemented": "Implemented",
                 "description": "Description",
             },
             "filter": {
-                "component": "component",
-                "feature": "feature",
+                "component": "component__name",
+                "feature": "feature__name",
                 "requested": "requested",
                 "implemented": "implemented",
                 "description": "description",
@@ -144,13 +144,13 @@ AUTO_GUI: Dict = {
         "Dependencies": {
             "nav": "dependencies",
             "fields": {
-                "component": "user__name",
-                "uses": "used__name",
+                "component": "Component",
+                "uses": "Uses",
                 "description": "Description",
             },
             "filter": {
-                "component": "component",
-                "uses": "uses",
+                "component": "component__name",
+                "uses": "uses__name",
                 "description": "description",
             },
         },

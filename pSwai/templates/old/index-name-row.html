@@ -1,0 +1,20 @@
+{# ------- name row (later sort up down )--------- #}
+{% load startswith %}
+<tr>
+  {% for name in names %}
+  <th scope="xcol" class="xcol-sm-auto">
+    {% if name|startswith:'_' %}
+
+    {% if name|startswith:'_D' %}
+      <input class="form-check-input" type="checkbox" name="action{{action_clean}}" value="ALL" id="action{{action_clean}}ALL-bot"/>
+    {% endif %}
+
+    {% if name|startswith:'_E' %}
+    {% endif %}
+
+    {% else %}
+      {{ name }}
+    {% endif %}
+  </th>
+  {% endfor %}
+</tr>

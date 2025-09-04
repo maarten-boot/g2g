@@ -24,7 +24,7 @@ def _importItem(itemStr: str) -> Any:
     then import the module
     and from the module we import the item
 
-    we returen the item or raise a error
+    we return the item or raise a error
     """
 
     module_path, itemName = itemStr.rsplit(".", 1)
@@ -68,36 +68,53 @@ def _urlGenOne(
     app,
     index,
     form,
-    nav: str,
+    navName: str,
 ) -> List[Any]:
+    """
+    generate all CRUD urls for one (app,navName)
+    """
     ll = [
         path(f"{app}/", index, name=f"{app}"),
-        path(f"{app}/{nav}/", index, name=f"{app}_{nav}"),
-        path(f"{app}/{nav}/add/", form, name=f"{app}_{nav}_add"),
-        path(f"{app}/{nav}/edit/<uuid:id>", form, name=f"{app}_{nav}_edit"),
-        path(f"{app}/{nav}/delete/<uuid:id>", form, name=f"{app}_{nav}_delete"),
+        path(f"{app}/{navName}/", index, name=f"{app}_{navName}"),
+        path(f"{app}/{navName}/add/", form, name=f"{app}_{navName}_add"),
+        path(f"{app}/{navName}/edit/<uuid:id>", form, name=f"{app}_{navName}_edit"),
+        path(f"{app}/{navName}/delete/<uuid:id>", form, name=f"{app}_{navName}_delete"),
     ]
     return ll
 
 
-def _mkDeleteLink(
+def _mkIndexDeleteLink(
     pk: str,
 ):
+    """
+    Make a link
+      that will request
+        a delete of an item
+            by its primary key
+    """
     zz = [
         "<input",
-        "   class='form-check-input'",
-        "   type='checkbox'",
-        f"  value='{pk}'" "   name='action{{ action_clean }}'",
-        "  id='action{{ action_clean }}{{ " + f"{pk}" + "}}'",
+        " class='form-check-input'",
+        " type='checkbox'",
+        f" value='{pk}'",
+        " name='action{{ action_clean }}'",
+        " id='action{{ action_clean }}{{ " + f"{pk}" + "}}'",
         ">",
     ]
     return " ".join(zz)
 
 
-def _makeEditLink(
+def _mkIndexEditLink(
     pk: str,
     name: str,
 ):
+    """
+    Make a link
+      that will request
+        a edit of an item
+            by its primary key
+    """
+
     what = "edit"
     return (
         "<a type='button' class='btn btn-sm btn-outline-info' href='{{ action_clean }}"
@@ -109,13 +126,13 @@ def _makeEditLink(
     return "<a href='{{ action_clean }}" + what + "/{{" + f"{pk}" + "}}'>{{" + f"{name}" + "}}</a>"
 
 
-def _defaultFieldTemplate(
+def _defaultIndexFieldTemplate(
     name,
 ):
     return "{{ " + f"{name}" + " }}"
 
 
-def _addFields(
+def _addIndexFields(
     xFields: Dict[str, Any],  # by ref so in and out
     ff,
     skipList,
@@ -123,24 +140,24 @@ def _addFields(
     for k, v in ff.items():
         if k in skipList:
             continue
-        xFields[v] = _defaultFieldTemplate(k)
+        xFields[v] = _defaultIndexFieldTemplate(k)
 
 
-def _addDefaultFields(
+def _addDefaultIndexFields(
     ff,
 ) -> Dict[str, Any]:
     """
     Add extra columns for Delete: _D and Edit: _E
     """
     xFields: Dict[str, Any] = {
-        "_D": _mkDeleteLink("id"),
-        "_E": _makeEditLink("id", "id"),
+        "_D": _mkIndexDeleteLink("id"),
+        "_E": _mkIndexEditLink("id", "id"),
     }
-    _addFields(xFields, ff, [])
+    _addIndexFields(xFields, ff, [])
     return xFields
 
 
-def _getMyFields(
+def _getMyIndexFields(
     autoGuiDict: Dict[str, Any],
     app,
     fp,
@@ -157,7 +174,7 @@ def _getMyFields(
     navNames = getNavNames(autoGuiDict).keys()
     for name in navNames:
         if fp.startswith(f"/{app}/{name}/"):
-            return _addDefaultFields(fields)
+            return _addDefaultIndexFields(fields)
 
     return {}
 
@@ -204,10 +221,11 @@ def urlGenAll(
     index,
     form,
 ) -> List[str]:
-    xList = getNavNames(autoGuiDict).keys()
     urlPatternList = []
-    for item in xList:
-        z = _urlGenOne(app, index, form, item)
+
+    navNameList = getNavNames(autoGuiDict).keys()
+    for navName in navNameList:
+        z = _urlGenOne(app, index, form, navName)
         urlPatternList += z
 
     return urlPatternList
@@ -236,10 +254,10 @@ def maxPerPagePaginate(
 def appNavigation(
     autoGuiDict: Dict[str, Any],
     app_name: str,
-):
-    # only create the nav for this app_name
-    zz = autoGuiDict.get("navigation")
+) -> List[Dict[str, str]]:
+    """only create the nav for this app_name"""
     rr = []
+    zz = autoGuiDict.get("navigation")
     if zz:
         for k, v in zz.items():
             data = {
@@ -305,7 +323,7 @@ def mapModel(
 
 
 def getKnownApps():
-    return ["aGit2Git"]
+    return ["aGit2Git"]  # todo: currently hardcoded
 
 
 def addNavHome():
@@ -342,7 +360,7 @@ def makeIndexFields(
     fp,
     page_obj,
 ) -> Tuple[List[str], List[Dict[str, Any]]]:
-    myFields = _getMyFields(autoGuiDict, app, fp)
+    myFields = _getMyIndexFields(autoGuiDict, app, fp)
 
     data = []
     names = []

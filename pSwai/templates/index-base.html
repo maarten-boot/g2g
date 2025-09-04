@@ -1,29 +1,71 @@
           {% if page_obj != None %}
-            {% if action_clean != "/" %}
-              {% include "add-div.html" %}
-            {% endif %}
           <div>
             <form action="{{ action_clean }}" method="post">
-            {% include "index-paginate.html" %}
-            {% include "index-bulk-action.html" %}
+
+              <div class="col">
+                {% include "index-paginate2.html" %}
+              </div>
+
               {% csrf_token %}
               <input class="hidden" type="submit" name="dummy" value="dummy" style="z-index: -1; display: none;"/>
-              <table id="index-main-table" class="index table table-sm table-hover table-bordered caption-top">
-                <caption>List of {{ action_clean }}</caption>
+
+              <table id="index-main-table" class="index table table-sm table-hover table-bordered">
+                {% load startswith %}
+
                 <thead>
-                  {% include "index-name-row.html" %}
-                  {% include "index-filter-row.html" %}
+                  {# ------- name row (later sort up down )--------- #}
+                  <tr>
+                    {% for name in names %}
+                      <th scope="xcol" class="xcol-sm-auto">
+                        {% if name|startswith:'_' %}
+                          {% if name|startswith:'_D' %}
+                            <input class="form-check-input" type="checkbox" name="action{{action_clean}}" value="ALL" id="action{{action_clean}}ALL-bot"/>
+                          {% endif %}
+                          {% if name|startswith:'_E' %}
+                          {% endif %}
+                        {% else %}
+                          {{ name }}
+                        {% endif %}
+                      </th>
+                    {% endfor %}
+                  </tr>
+
+                  {# ------- Filter row --------- #}
+                  <tr>
+                    {% for k,v in filter.items %}
+                      <th scope="xcol" class="xcol-sm-auto">
+                        {% if k|startswith:'filter-_' %}
+                          {% if k == 'filter-_E' %}
+                            Edit
+                          {% endif %}
+                          {% if k == 'filter-_D' %}
+                            Del
+                          {% endif %}
+                        {% else %}
+                          <input
+                            class="input-filter-text"
+                            type="text"
+                            name="{{ k }}"
+                            value="{{ v|default_if_none:"" }}"
+                            id="{{ k }}"
+                            onchange="myFunction()"
+                          />
+                        {% endif %}
+                      </th>
+                    {% endfor %}
+                  </tr>
                 </thead>
 
                 <tbody class="table-group-divider">
                 {% for row in data %}
-                  {# ------- a data row --------- #}
+                  {# -- rows -- #}
                   <tr>
                     {% for k,v in row.items %}
+                      {# -- columns -- #}
                       {% if k == "_" %}
-                    <td class="col-sm-auto">{{ v|safe}}</td>
+                        <td class="xcol-sm-auto">{{ v|safe}}</td>
                       {% else %}
-                    <td class="col-sm-auto">{{ v|safe}}</td>
+                        <td class="xcol-sm-auto">{{ v|safe}}</td>
                       {% endif %}
                     {% endfor %}
                   </tr>
@@ -31,9 +73,10 @@
                 </tbody>
 
                 <tfoot class="table-group-divider">
-                  {% include "index-name-row.html" %}
+                  {# include "index-name-row.html" #}
                 </tfoot>
               </table>
+
               {% include "index-paginate2.html" %}
 
             </form>

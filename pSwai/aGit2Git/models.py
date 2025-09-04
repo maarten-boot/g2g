@@ -216,7 +216,6 @@ class Implementation(AbsBase):
         Component,
         on_delete=models.CASCADE,
     )
-
     feature = models.ForeignKey(
         Feature,
         on_delete=models.CASCADE,
@@ -227,7 +226,6 @@ class Implementation(AbsBase):
     implemented = models.BooleanField(
         default=False,
     )
-
     description = models.TextField(
         blank=True,
         null=True,

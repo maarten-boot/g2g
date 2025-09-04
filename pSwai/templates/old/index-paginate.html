@@ -1,0 +1,67 @@
+
+<table style="width: 100%">
+  <tr style="width: 100%">
+    <td>
+      List of {{ action_clean }}
+    </td>
+    <td>
+      &nbsp;
+      {% if action_clean != "/" %}
+        {% if updating == True or action_clean != "/" %}
+            <a href="/{{ path.0}}/{{path.1}}/add/"> New </a>
+        {% else %}
+            A new {{ action_clean }}
+        {% endif %}
+      {% endif %}
+    </td>
+    <td>
+      &nbsp;
+      {% if page_obj.has_previous %}
+        <a href="?page=1"> << </a>
+      {% else %}
+        <<
+      {% endif %}
+    </td>
+    <td>
+      &nbsp;
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"> < </a>
+      {% else %}
+        <
+      {% endif %}
+    </td>
+    <td>
+      &nbsp;
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+    </td>
+    <td>
+      &nbsp;
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"> > </a>
+      {% else %}
+        >
+      {% endif %}
+    </td>
+    <td>
+      &nbsp;
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.paginator.num_pages }}"> >> </a>
+      {% else %}
+        >>
+      {% endif %}
+    </td>
+    <td>
+      &nbsp;
+      perPage:
+      <input
+        id="perPage"
+        class="input-filter-text"
+        name="perPage"
+        style="width: 3em;"
+        type="text"
+        value="{{ perPage }}"
+        onchange="myFunction()"
+      />
+    </td>
+  </tr>
+</table>

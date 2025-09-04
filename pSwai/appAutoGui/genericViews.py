@@ -66,15 +66,32 @@ def _doOneIndexItem(
         return
 
     filterDict[f"{hint}__icontains"] = v
+    # this will not work for boool or referential fields <fk_row_name>
+    # Unsupported lookup 'icontains' for ForeignKey or join on the field not permitted.
 
 
-def _getSearchDataWithFilterApplied(autoGuiDict, model, postData):
+def _getSearchDataWithFilterApplied(
+    autoGuiDict,
+    model,
+    postData,
+):
+    """ """
     prefix = getFilterPrefix()
-    filterDict = {}
+    filterDict = {}  # is a in/out param
     for k, v in postData.items():
-        _doOneIndexItem(autoGuiDict, model, k, v, prefix, filterDict)
+        _doOneIndexItem(
+            autoGuiDict,
+            model,
+            k,
+            v,
+            prefix,
+            filterDict,  # this gets updated
+        )
 
-    return model.objects.filter(**filterDict)
+    # here we apply the filters and that breaks on bool and fk fields
+    rr = model.objects.filter(**filterDict)
+
+    return rr
 
 
 def _splitPath(fullPath):
@@ -471,7 +488,11 @@ def genericIndex(
     fieldNames = {}
 
     if model:
-        item_list = _getSearchDataWithFilterApplied(autoGuiDict, model, postData)
+        item_list = _getSearchDataWithFilterApplied(
+            autoGuiDict,
+            model,
+            postData,
+        )
         paginator = Paginator(item_list, perPage)
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
