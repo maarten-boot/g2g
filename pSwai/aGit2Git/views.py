@@ -14,7 +14,13 @@ def form(
     **kwargs,
 ):
     app_name = __package__
-    return genericForm(AUTO_GUI, app_name, request, *args, **kwargs)
+    return genericForm(
+        autogui_dict=AUTO_GUI,
+        app_name=app_name,
+        request=request,
+        *args,
+        **kwargs,
+    )
 
 
 def index(
@@ -23,4 +29,10 @@ def index(
     **kwargs,
 ):
     app_name = __package__
-    return genericIndex(AUTO_GUI, app_name, request, *args, **kwargs)
+    return genericIndex(
+        autogui_dict=AUTO_GUI,
+        app_name=app_name,
+        request=request,
+        *args,
+        **kwargs,
+    )

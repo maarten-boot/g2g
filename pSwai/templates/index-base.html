@@ -1,84 +1,116 @@
-          {% if page_obj != None %}
-          <div>
-            <form action="{{ action_clean }}" method="post">
+{% if page_obj != None %}
+<div>
+  <form action="{{ action_clean }}" method="post">
+    {% csrf_token %}
+    <input
+      class="hidden"
+      type="submit"
+      name="dummy"
+      value="dummy"
+      style="z-index: -1;
+      display: none;"
+    />
 
-              <div class="col">
-                {% include "index-paginate2.html" %}
-              </div>
+    <div class="col">
+      {# include "index-paginate2.html" #}
+    </div>
 
-              {% csrf_token %}
-              <input class="hidden" type="submit" name="dummy" value="dummy" style="z-index: -1; display: none;"/>
+    <table id="index-main-table" class="index table table-sm table-hover table-bordered ">
+      {% load startswith %}
 
-              <table id="index-main-table" class="index table table-sm table-hover table-bordered">
-                {% load startswith %}
+      <thead>
+        {# ------- columnName row (later sort up down )--------- #}
+        <tr>
+          {% for columnName in colNames %}
+            <th scope="col" class="col-sm-auto">
+              {% if columnName|startswith:'_' %}
+                {% if columnName|startswith:'_D' %}
+                  {# the delete selector column; not used at this time, will become bulk delete #}
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    columnName="action{{action_clean}}"
+                    title="apply delete to all selected items"
+                    value="DELETE_SELECTED"
+                    id="action{{action_clean}}_DELETE_SELECTED"
+                  />
+                {% endif %}
+                {% if columnName|startswith:'_E' %}
+                  {# nothing for the edit button column #}
+                  {# we could use this as a clear all current sort fields #}
+                  <a
+                    class='btn btn-sm btn-outline-dark'
+                    type="button"
+                    title="Remove all current sorting"
+                    href='{{action_clean}}?clear-sorting-all'
+                  >Cs</a>
+                {% endif %}
+              {% else %}
+                {# here we can add the sort 'no, desc, asc' behaviour #}
+                <a
+                  type="button"
+                  class='btn btn-sm btn-outline-dark'
+                  href='{{action_clean}}?sort-{{columnName}}'
+                >
+                  {{columnName}}
+                </a>
+              {% endif %}
+            </th>
+          {% endfor %}
+        </tr>
 
-                <thead>
-                  {# ------- name row (later sort up down )--------- #}
-                  <tr>
-                    {% for name in names %}
-                      <th scope="xcol" class="xcol-sm-auto">
-                        {% if name|startswith:'_' %}
-                          {% if name|startswith:'_D' %}
-                            <input class="form-check-input" type="checkbox" name="action{{action_clean}}" value="ALL" id="action{{action_clean}}ALL-bot"/>
-                          {% endif %}
-                          {% if name|startswith:'_E' %}
-                          {% endif %}
-                        {% else %}
-                          {{ name }}
-                        {% endif %}
-                      </th>
-                    {% endfor %}
-                  </tr>
+        {# ------- Filter row --------- #}
+        <tr>
+          {% for filterName,filterValue in filter.items %}
+            <th scope="col" class="col-sm-auto">
+              {% if filterName|startswith:'filter-_' %}
+                {% if filterName == 'filter-_E' %}
+                  <a
+                    class='btn btn-sm btn-outline-dark'
+                    type="button"
+                    title="Remove all current filters"
+                    href='{{action_clean}}?clear-filters-all'
+                  >Cf</a>
+                {% endif %}
+                {% if filterName == 'filter-_D' %}
+                  Del
+                {% endif %}
+              {% else %}
+                {# the filter input field #}
+                <input
+                  class="input-filter-text"
+                  type="text"
+                  name="{{ filterName }}"
+                  value="{{ filterValue|default_if_none:"" }}"
+                  title="case insensitive filter; you can clear the filter by entering just *"
+                  id="{{ filterName }}"
+                  onchange="myFunction()"
+                />
+              {% endif %}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
 
-                  {# ------- Filter row --------- #}
-                  <tr>
-                    {% for k,v in filter.items %}
-                      <th scope="xcol" class="xcol-sm-auto">
-                        {% if k|startswith:'filter-_' %}
-                          {% if k == 'filter-_E' %}
-                            Edit
-                          {% endif %}
-                          {% if k == 'filter-_D' %}
-                            Del
-                          {% endif %}
-                        {% else %}
-                          <input
-                            class="input-filter-text"
-                            type="text"
-                            name="{{ k }}"
-                            value="{{ v|default_if_none:"" }}"
-                            id="{{ k }}"
-                            onchange="myFunction()"
-                          />
-                        {% endif %}
-                      </th>
-                    {% endfor %}
-                  </tr>
-                </thead>
+      <tbody class="table-group-divider">
+      {% for row in data %}
+        {# -- rows -- #}
+        <tr>
+          {% for fieldName,fieldValue in row.items %}
+            {# -- columns -- #}
+            {% if fieldName == "_" %}
+              <td  class="col-sm-auto">{{ fieldValue|safe}}</td>
+            {% else %}
+              <td  class="col-sm-auto">{{ fieldValue|safe}}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
 
-                <tbody class="table-group-divider">
-                {% for row in data %}
-                  {# -- rows -- #}
-                  <tr>
-                    {% for k,v in row.items %}
-                      {# -- columns -- #}
-                      {% if k == "_" %}
-                        <td class="xcol-sm-auto">{{ v|safe}}</td>
-                      {% else %}
-                        <td class="xcol-sm-auto">{{ v|safe}}</td>
-                      {% endif %}
-                    {% endfor %}
-                  </tr>
-                {% endfor %}
-                </tbody>
+    {% include "index-paginate2.html" %}
 
-                <tfoot class="table-group-divider">
-                  {# include "index-name-row.html" #}
-                </tfoot>
-              </table>
-
-              {% include "index-paginate2.html" %}
-
-            </form>
-          </div>
-          {% endif %}
+  </form>
+</div>
+{% endif %}

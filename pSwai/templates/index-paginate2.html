@@ -1,10 +1,10 @@
 <div class="pagination row ">
 
   <div class="col-sm-auto">
-        List of {{ action_clean }}
+    List of {{ action_clean }}
   </div>
-  <div class="col-sm-auto">
 
+  <div class="col-sm-auto">
       {% if action_clean != "/" %}
         {% if updating == True or action_clean != "/" %}
             <a href="/{{ path.0}}/{{path.1}}/add/"> New </a>
@@ -15,19 +15,19 @@
   </div>
 
   <div class="step-links col-sm-auto">
-  {% if page_obj.has_previous %}
-    <a href="?page=1"> << </a>
-  {% else %}
-    <<
-  {% endif %}
+    {% if page_obj.has_previous %}
+      <a href="?page=1"> << </a>
+    {% else %}
+      <<
+    {% endif %}
   </div>
 
   <div class="step-links col-sm-auto">
-  {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}"> < </a>
-  {% else %}
-    <
-  {% endif %}
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}"> < </a>
+    {% else %}
+      <
+    {% endif %}
   </div>
 
   <div class="col-sm-auto">
@@ -46,7 +46,7 @@
   {% if page_obj.has_next %}
     <a href="?page={{ page_obj.paginator.num_pages }}"> >> </a>
   {% else %}
-    >
+    >>
   {% endif %}
   </div>
 

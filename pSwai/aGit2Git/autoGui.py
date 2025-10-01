@@ -6,7 +6,7 @@ from typing import (
 
 AUTO_GUI: Dict = {
     "max_per_page": 5,
-    "navigation": { # label , internal name used on model.nav:
+    "navigation": {  # label , internal name used on model.nav:
         "Server": "server",
         "Repo": "repo",
         "RepoPair": "repopair",
@@ -20,14 +20,14 @@ AUTO_GUI: Dict = {
     },
     "models": {
         "Server": {
-            "nav": "server", # the name used in the Navigation
-            "fields": { # field_name -> Label
+            "nav": "server",  # the name used in the Navigation
+            "fields": {  # field_name -> Label
                 "name": "Name",
                 "description": "Description",
                 "url": "Url",
                 "internal": "Internal",
             },
-            "filter": { # field name , filter_hint (icontains)
+            "filter": {  # field name , filter_hint (icontains)
                 "name": "name",
                 "description": "description",
                 "url": "url",
@@ -65,7 +65,7 @@ AUTO_GUI: Dict = {
                 "description": "description",
                 "source": "source__name",
                 "target": "target__name",
-                "copyType": "copyType",
+                "copyType": "copyType__name",
             },
         },
         "Script": {

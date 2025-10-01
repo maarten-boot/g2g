@@ -19,22 +19,34 @@ TWO_WEEKS_IN_SECONDS = int(60 * 60 * 24 * 7 * 2)
 
 
 # @login_required
-def form(request, *args, **kwargs):
+def form(
+    request,
+    *args,
+    **kwargs,
+):
     app_name = __package__
-    return genericForm({}, app_name, request, *args, **kwargs)
+    return genericForm(
+        {},
+        app_name,
+        request,
+        *args,
+        **kwargs,
+    )
 
 
-def index(request, *args, **kwargs):
+def index(
+    request,
+    *args,
+    **kwargs,
+):
     """force mandatory login before you can access the index (search) page"""
     if request.method == "POST" and request.user.is_authenticated is False:
-        print(f"HH: {request.POST}", file=sys.stderr)
         xform = forms.LoginForm(request.POST)
         if xform.is_valid():
             remember_me = False
             username = xform.cleaned_data["loginName"]
             password = xform.cleaned_data["loginPassword"]
             # remember_me = xform.cleaned_data["loginCheck"]
-            print(f"HH: {username}, {password}", file=sys.stderr)
 
             user = authenticate(request, username=username, password=password)
             if user is not None:
@@ -51,15 +63,25 @@ def index(request, *args, **kwargs):
         return redirect(settings.LOGIN_URL)
 
     app_name = __package__
-    return genericIndex({}, app_name, request, *args, **kwargs)
+    return genericIndex(
+        autogui_dict={},
+        app_name=app_name,
+        request=request,
+        *args,
+        **kwargs,
+    )
 
 
-def logout_view(request):
+def logout_view(
+    request,
+):
     logout(request)
     return redirect(f"{settings.LOGIN_URL}")
 
 
-def login_view(request):
+def login_view(
+    request,
+):
     if request.method != "POST":
         form = forms.LoginForm()
         return redirect(settings.LOGIN_URL)

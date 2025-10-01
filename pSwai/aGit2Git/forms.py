@@ -18,7 +18,17 @@ from appAutoGui.xauto import getModelData2
 
 
 def _gf(model):
-    return getModelData2(AUTO_GUI, model.__name__).get("fields").keys()
+    """_getFields of a model:
+    get all the field names from a given model using the json AUTOGUI tree
+    """
+    return (
+        getModelData2(
+            AUTO_GUI,
+            model.__name__,
+        )
+        .get("fields")
+        .keys()
+    )
 
 
 class ServerForm(ModelForm):

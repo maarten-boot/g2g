@@ -15,6 +15,7 @@ from django.core.paginator import Paginator
 from appAutoGui.xauto import (
     mapModel,
     mapForm,
+    makeIndexFieldNames,
     makeIndexFields,
     getFilterPrefix,
     getModelData2,
@@ -28,13 +29,16 @@ def debugOn() -> bool:
 
 
 def _getFilterHint(
-    autoGuiDict: Dict[str, Any],
+    autogui_dict: Dict[str, Any],
     modelName: str,
     fieldName: str,
 ) -> str:
     # return the filter hint we use to actually filter,
     # so we can use fk fields also to filter on
-    fields = getModelData2(autoGuiDict, modelName)
+    fields = getModelData2(
+        autogui_dict,
+        modelName,
+    )
     k = "filter"
 
     if k not in fields:
@@ -47,64 +51,66 @@ def _getFilterHint(
 
 
 def _doOneIndexItem(
-    autoGuiDict,
+    autogui_dict,
     model,
-    k,
-    v,
+    postdata_key,
+    postdata_value,
     prefix,
-    filterDict: Dict[str, str],
-) -> None:
-    if not v:
-        return
+) -> str | None:
+    """
+    remove the filter prefix leaving the field name
+    and then see if we can filter on this field in autoGui
+    """
+    if not postdata_value:
+        return None
 
-    if not k.startswith(prefix):
-        return
-
-    k2 = k.split(prefix)[1]
-    hint = _getFilterHint(autoGuiDict, model.__name__, k2)
-    if hint is None:
-        return
-
-    filterDict[f"{hint}__icontains"] = v
-    # this will not work for boool or referential fields <fk_row_name>
-    # Unsupported lookup 'icontains' for ForeignKey or join on the field not permitted.
+    fieldName = postdata_key.split(prefix)[1]
+    return _getFilterHint(
+        autogui_dict=autogui_dict,
+        modelName=model.__name__,
+        fieldName=fieldName,
+    )
 
 
 def _getSearchDataWithFilterApplied(
-    autoGuiDict,
-    model,
-    postData,
+    index_path: str,
+    autogui_dict: Dict[str, Any],
+    model: Any,
+    postData: Any,
 ):
     """ """
     prefix = getFilterPrefix()
-    filterDict = {}  # is a in/out param
-    for k, v in postData.items():
-        _doOneIndexItem(
-            autoGuiDict,
+    filterDict = {}
+
+    for postdata_key, postdata_value in postData.items():
+        if not postdata_key.startswith(prefix):
+            continue
+
+        filter_hint = _doOneIndexItem(
+            autogui_dict,
             model,
-            k,
-            v,
+            postdata_key,
+            postdata_value,
             prefix,
-            filterDict,  # this gets updated
         )
+        if filter_hint:
+            filterDict[f"{filter_hint}__icontains"] = postdata_value
 
-    # here we apply the filters and that breaks on bool and fk fields
-    rr = model.objects.filter(**filterDict)
+    return model.objects.filter(
+        **filterDict,
+    )
 
-    return rr
 
-
-def _splitPath(fullPath):
+def _splitPath(
+    fill_path,
+):
     if debugOn():
-        print(f"fullPath: |{fullPath}|", file=sys.stderr)
+        print(f"fill_path: |{fill_path}|", file=sys.stderr)
 
-    if len(fullPath) > 0:
-        if len(fullPath) > 1:
-            splitPath = fullPath[1:][:-1].split("/")
-        else:
-            splitPath = []
-    else:
-        splitPath = []
+    splitPath = []
+    if len(fill_path) > 0:
+        if len(fill_path) > 1:
+            splitPath = fill_path[1:][:-1].split("/")
 
     if debugOn():
         print(f"pathLen: {len(splitPath)} :: {splitPath}", file=sys.stderr)
@@ -112,15 +118,19 @@ def _splitPath(fullPath):
     return splitPath
 
 
-def _startContext(autoGuiDict, app_name: str, request) -> Dict[str, Any]:
-    fullPath = request.get_full_path()
+def _startContext(
+    autogui_dict,
+    app_name: str,
+    request,
+) -> Dict[str, Any]:
+    fill_path = request.get_full_path()
 
-    title = str(fullPath)
-    action = fullPath
-    action_clean = fullPath.split("?")[0]
-    # nav = navigation(autoGuiDict, app_name)
+    title = str(fill_path)
+    action = fill_path
+    action_clean = fill_path.split("?")[0]
+    # nav = navigation(autogui_dict, app_name)
     nav = navigation()
-    path = _splitPath(fullPath)
+    path = _splitPath(fill_path)
 
     if debugOn():
         print(f"path:: {path}", file=sys.stderr)
@@ -162,11 +172,11 @@ def _getPostData(request):
 def _deleteAndRedirect(
     model,
     postData,
-    fullPath,
+    fill_path,
 ):
     instance = model.objects.get(id=postData["delete"])
     instance.delete()
-    fp3 = fullPath.replace("/delete/", "/")
+    fp3 = fill_path.replace("/delete/", "/")
     fp3 = fp3.replace(postData["delete"], "")
     return redirect(f"{fp3}")
 
@@ -174,32 +184,39 @@ def _deleteAndRedirect(
 def _doValidForm(
     myForm,
     postData,
-    fullPath,
+    fill_path,
     k,
     **kwargs,
 ):
     item = myForm.save()
     if k not in kwargs:  # no id field: we are adding
         if "_addanother" in postData:
-            return redirect(f"{fullPath}")
+            return redirect(f"{fill_path}")
 
         if "_continue" in postData:
-            fp2 = fullPath.replace("/add/", "/edit/")
+            fp2 = fill_path.replace("/add/", "/edit/")
             return redirect(f"{fp2}{item.id}")
     else:  # we have id we are editing (delete was already done)
         if "_addanother" in postData:
-            fp2 = fullPath.split("/edit/")[0] + "/add/"
+            fp2 = fill_path.split("/edit/")[0] + "/add/"
             return redirect(f"{fp2}")
 
     return None
 
 
-def _formInit(k, request, app_name=None, autoGuiDict={}, *args, **kwargs):
-    fullPath = request.get_full_path()
+def _formInit(
+    k,
+    request,
+    app_name=None,
+    autogui_dict={},
+    *args,
+    **kwargs,
+):
+    fill_path = request.get_full_path()
     if debugOn():
-        print(f"fullPath: {fullPath}", file=sys.stderr)
+        print(f"fill_path: {fill_path}", file=sys.stderr)
 
-    model = mapModel(autoGuiDict, app_name, fullPath)
+    model = mapModel(autogui_dict, app_name, fill_path)
     if debugOn():
         print(f"model: {model}", file=sys.stderr)
 
@@ -207,7 +224,7 @@ def _formInit(k, request, app_name=None, autoGuiDict={}, *args, **kwargs):
     if debugOn():
         print(f"postData: {postData}", file=sys.stderr)
 
-    splitPath = _splitPath(fullPath)
+    splitPath = _splitPath(fill_path)
     what = None
     if len(splitPath) > 2:
         what = splitPath[2]
@@ -217,27 +234,30 @@ def _formInit(k, request, app_name=None, autoGuiDict={}, *args, **kwargs):
     if mData:
         # if we have data we can fill the form with the current data
         myForm = mapForm(
-            autoGuiDict,
+            autogui_dict,
             app_name,
-            fullPath,
+            fill_path,
             instance=mData,
         )
     else:
         # otherwise start a empty form
         myForm = mapForm(
-            autoGuiDict,
+            autogui_dict,
             app_name,
-            fullPath,
+            fill_path,
             None,
         )
 
     if debugOn():
         print(f"myForm 0: {myForm} {mData}", file=sys.stderr)
 
-    return model, myForm, postData, fullPath, what, mData, xId
+    return model, myForm, postData, fill_path, what, mData, xId
 
 
-def _getPrimaryKey(k, **kwargs):
+def _getPrimaryKey(
+    k,
+    **kwargs,
+):
     xId = None
     if k in kwargs:
         xId = kwargs[k]
@@ -246,15 +266,23 @@ def _getPrimaryKey(k, **kwargs):
     return xId
 
 
-def _doRenderFormData(request, app_name, autoGuiDict, fullPath, myForm, xId, what):
-    path = _splitPath(fullPath)
+def _doRenderFormData(
+    request,
+    app_name,
+    autogui_dict,
+    fill_path,
+    myForm,
+    xId,
+    what,
+):
+    path = _splitPath(fill_path)
 
     deleting = True if what == "delete" else False
     updating = True if what == "edit" else False
 
     xDel = "/".join(["", path[0], path[1], "delete", str(xId)]) if xId else None
 
-    c1 = _startContext(autoGuiDict, app_name, request)
+    c1 = _startContext(autogui_dict, app_name, request)
     c2 = {
         "form": myForm,
         "id": xId,
@@ -277,12 +305,12 @@ def _doAddItem(
     model,
     myForm,
     postData,
-    fullPath,
+    fill_path,
     what,
     mData,
     xId,
     request,
-    autoGuiDict,
+    autogui_dict,
     app_name,
     **kwargs,
 ):
@@ -293,9 +321,9 @@ def _doAddItem(
 
     if postData:
         myForm = mapForm(
-            autoGuiDict,
+            autogui_dict,
             app_name,
-            fullPath,
+            fill_path,
             postData,
         )
         if debugOn():
@@ -305,7 +333,7 @@ def _doAddItem(
             resp = _doValidForm(
                 myForm,
                 postData,
-                fullPath,
+                fill_path,
                 k,
                 **kwargs,
             )
@@ -315,8 +343,8 @@ def _doAddItem(
     return _doRenderFormData(
         request,
         app_name,
-        autoGuiDict,
-        fullPath,
+        autogui_dict,
+        fill_path,
         myForm,
         xId,
         what,
@@ -328,12 +356,12 @@ def _doEditItem(
     model,
     myForm,
     postData,
-    fullPath,
+    fill_path,
     what,
     mData,
     xId,
     request,
-    autoGuiDict,
+    autogui_dict,
     app_name,
     **kwargs,
 ):
@@ -341,9 +369,9 @@ def _doEditItem(
         if mData:
             # update the form with the newly posted data
             myForm = mapForm(
-                autoGuiDict,
+                autogui_dict,
                 app_name,
-                fullPath,
+                fill_path,
                 postData,
                 instance=mData,
             )
@@ -354,7 +382,7 @@ def _doEditItem(
                 resp = _doValidForm(
                     myForm,
                     postData,
-                    fullPath,
+                    fill_path,
                     k,
                     **kwargs,
                 )
@@ -364,8 +392,8 @@ def _doEditItem(
     return _doRenderFormData(
         request,
         app_name,
-        autoGuiDict,
-        fullPath,
+        autogui_dict,
+        fill_path,
         myForm,
         xId,
         what,
@@ -377,12 +405,12 @@ def _doDeleteItem(
     model,
     myForm,
     postData,
-    fullPath,
+    fill_path,
     what,
     mData,
     xId,
     request,
-    autoGuiDict,
+    autogui_dict,
     app_name,
     **kwargs,
 ):
@@ -390,14 +418,14 @@ def _doDeleteItem(
         return _deleteAndRedirect(
             model,
             postData,
-            fullPath,
+            fill_path,
         )
 
     return _doRenderFormData(
         request,
         app_name,
-        autoGuiDict,
-        fullPath,
+        autogui_dict,
+        fill_path,
         myForm,
         xId,
         what,
@@ -407,7 +435,10 @@ def _doDeleteItem(
 # PUBLIC
 
 
-def getModelData(model, xId):
+def getModelData(
+    model,
+    xId,
+):
     """
     fetch the data from a mode and a pk
     """
@@ -423,18 +454,22 @@ def doPagingWithSearchFilters():
     pass
 
 
-def doPerPage(request, autoGuiDict, postData):
-    maxPerPage = maxPerPagePaginate(autoGuiDict)
+def doPerPage(
+    request: Any,
+    autogui_dict: Dict[str, Any],
+    postData: Any,
+) -> int | None:
+    maxPerPage = maxPerPagePaginate(autogui_dict)
+
+    if autogui_dict is None or len(autogui_dict) == 0:
+        return None
+
     perPage = None
-
     k = "perPage"
-    k2 = "perPage2"
     if k in request.session:
-        perPage = request.session[k]
+        perPage = request.session.get(k)
 
-    if debugOn():
-        print(postData, file=sys.stderr)
-
+    k2 = "perPage2"
     for j in [k, k2]:
         z = postData.get(j)
         if z:
@@ -448,80 +483,152 @@ def doPerPage(request, autoGuiDict, postData):
     if perPage is None:
         perPage = maxPerPage
 
-    request.session[k] = perPage
+    request.session[k] = perPage  # set the new per page in the session
     return perPage
 
 
+def getFilterDictInfo(
+    index_path: str,
+    request: Any,
+    fieldNames: Dict[str, Any],
+) -> Dict[str, Any]:
+    filter_prefix = getFilterPrefix()
+    postData = _getPostData(request)
+
+    filter_dict = {}
+    session_key = f"{index_path}filter_dict"
+    # -----------------------------------
+    # if exist start with the current sesion data
+    if request.session.get(session_key, False):
+        filter_dict = request.session.get(session_key)
+
+    if debugOn():
+        print("FilterSession OLD", session_key, filter_dict, file=sys.stderr)
+
+    # -----------------------------------
+    filter_dict[f"{filter_prefix}_D"] = None
+    filter_dict[f"{filter_prefix}_E"] = None
+
+    for name, label in fieldNames.items():
+        filter_key = f"{filter_prefix}{name}"
+        if filter_key not in filter_dict:
+            filter_dict[filter_key] = None
+
+        v = postData.get(filter_key)
+        if v:
+            filter_dict[filter_key] = v  # we now have a copy of the post data in filter dict
+            if v == "*":
+                filter_dict[filter_key] = None
+
+    if debugOn():
+        print("FilterSession New", session_key, filter_dict, file=sys.stderr)
+
+    request.session[session_key] = filter_dict
+    return filter_dict
+
+
 def genericIndex(
-    autoGuiDict,
+    autogui_dict,
     app_name,
     request,
     *args,
     **kwargs,
 ):
-    fullPath = request.get_full_path()
-    splitPath = _splitPath(fullPath)
-
+    fill_path = request.get_full_path()
+    splitPath = _splitPath(fill_path)
     if len(splitPath) < 2:
-        # we have no actual model now
-        # we are either at the top level len==0 (home) or at the app level len ==1
+        # we are either at the top level len==0 (home) or at the app level len==1
         if len(splitPath) == 1:
             # gather info on this app and show that
             pass
         else:
-            # gather info on the project ans show that
+            # gather info on the project and show that
             pass
         pass
 
+    index_path = fill_path
+    if len(splitPath) > 2:
+        index_path = "/" + "/".join(splitPath[:2]) + "/"
+
     model = None
-    if autoGuiDict and len(autoGuiDict) and app_name:
-        model = mapModel(
-            autoGuiDict,
-            app_name,
-            fullPath,
-        )
-
-    postData = _getPostData(request)
-    perPage = doPerPage(request, autoGuiDict, postData)
-
-    page_obj = None
     fieldNames = {}
+    if autogui_dict and len(autogui_dict) and app_name:
+        model = mapModel(
+            autogui_dict,
+            app_name,
+            index_path,
+        )
 
     if model:
-        item_list = _getSearchDataWithFilterApplied(
-            autoGuiDict,
-            model,
-            postData,
-        )
-        paginator = Paginator(item_list, perPage)
-        page_number = request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
-        fieldNames = getModelData2(autoGuiDict, model.__name__).get(
+        fieldNames = getModelData2(
+            autogui_dict,
+            model.__name__,
+        ).get(
             "fields",
         )
 
-    names = []
+    postData = _getPostData(request)
+    perPage = doPerPage(
+        request,
+        autogui_dict,
+        postData,  # we are looking for page size info and page offset
+    )
+
+    page_obj = None
     data = []
-    if autoGuiDict and len(autoGuiDict) and app_name:
-        names, data = makeIndexFields(
-            autoGuiDict,
-            app_name,
-            fullPath,
-            page_obj,
-        )
-
-    # make the filter names and filter the result set
-    filterPrefix = getFilterPrefix()
     filterDict = {}
-    filterDict[f"{filterPrefix}_D"] = None
-    filterDict[f"{filterPrefix}_E"] = None
-    for name, label in fieldNames.items():
-        k = f"{filterPrefix}{name}"
-        v = postData.get(k)
-        filterDict[k] = v
+    sortDict = {}
+    names = makeIndexFieldNames(
+        autogui_dict,
+        app_name,
+        index_path,
+    )
+    if model:
+        # --- filter
+        filterDict = getFilterDictInfo(
+            index_path,
+            request,
+            fieldNames,
+        )
+        #         # --- sort
+        #         if request.session.get('sort'):
+        #             sortDict = request.session.get('sort')
+        #
+        #         for colName in names:
+        #             x = request.GET.get('sort')
+        #             if x:
+        #             sortDict[colName] = "-"
+        #         request.session['sort'] = sortDict
 
+        # --- get data
+        # get the current page of data we are about to prepare for display
+        item_list = _getSearchDataWithFilterApplied(
+            index_path,
+            autogui_dict,
+            model,
+            filterDict,
+            # postData,  # we are looking for filter hints
+        )
+        paginator = Paginator(
+            item_list,
+            perPage,
+        )
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(
+            page_number,
+        )
+        # --- get page
+        if page_obj:
+            names, data = makeIndexFields(
+                autogui_dict,
+                app_name,
+                index_path,
+                page_obj,  # the one page we will show
+            )
+
+    # ---- prepare for display
     c1 = _startContext(
-        autoGuiDict,
+        autogui_dict,
         app_name,
         request,
     )
@@ -529,9 +636,10 @@ def genericIndex(
         "perPage": perPage,
         "page_obj": page_obj,
         "data": data,
-        "names": names,
+        "colNames": names,
         "postData": postData,
         "filter": filterDict,
+        "sort": sortDict,
     }
     context = c1 | c2  # merge the dicts
 
@@ -544,18 +652,19 @@ def genericIndex(
 
 # @login_required
 def genericForm(
-    autoGuiDict,
+    autogui_dict,
     app_name,
     request,
     *args,
     **kwargs,
 ):
+    # request.session
     k = "id"
-    model, myForm, postData, fullPath, what, mData, xId = _formInit(
+    model, myForm, postData, fill_path, what, mData, xId = _formInit(
         k,
         request,
         app_name,
-        autoGuiDict,
+        autogui_dict,
         *args,
         **kwargs,
     )
@@ -567,12 +676,12 @@ def genericForm(
             model,
             myForm,
             postData,
-            fullPath,
+            fill_path,
             what,
             mData,
             xId,
             request,
-            autoGuiDict,
+            autogui_dict,
             app_name,
             **kwargs,
         )
@@ -584,12 +693,12 @@ def genericForm(
             model,
             myForm,
             postData,
-            fullPath,
+            fill_path,
             what,
             mData,
             xId,
             request,
-            autoGuiDict,
+            autogui_dict,
             app_name,
             **kwargs,
         )
@@ -600,25 +709,28 @@ def genericForm(
             model,
             myForm,
             postData,
-            fullPath,
+            fill_path,
             what,
             mData,
             xId,
             request,
-            autoGuiDict,
+            autogui_dict,
             app_name,
             **kwargs,
         )
 
-    # not add, edit or delete
+    if what == "sort":
+        return None
+
+    # not add, edit or delete, sort
     if debugOn():
-        print("not one of [add, edit, delete]", file=sys.stderr)
+        print("not one of [add, edit, delete, sort]", file=sys.stderr)
 
     return _doRenderFormData(
         request,
         app_name,
-        autoGuiDict,
-        fullPath,
+        autogui_dict,
+        fill_path,
         myForm,
         xId,
         what,
