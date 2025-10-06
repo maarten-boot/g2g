@@ -4,12 +4,10 @@ Django settings for pSwai project.
 
 import os
 import sys
-import environ
-import ldap
-
 from pathlib import Path
 from dotenv import find_dotenv
-
+import environ
+import ldap
 from django_auth_ldap.config import (
     LDAPSearch,
     ActiveDirectoryGroupType,
@@ -22,7 +20,7 @@ env = environ.Env()
 env_file = find_dotenv()
 if not env_file:
     print("FATAL: failed to find the '.env' file", file=sys.stderr)
-    exit(101)
+    sys.exit(101)
 
 environ.Env.read_env(env_file=env_file)
 # end setup env

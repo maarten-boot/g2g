@@ -32,14 +32,15 @@ class AbsBase(models.Model):
         null=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
+
         abstract = True
 
     def __repr__(self):
-        return "<%d>" % (self.id)
+        return f"<{self.id}>"
 
     def __str__(self):
-        return "<%d>" % (self.id)
+        return f"<{self.id}>"
 
 
 class AbsCommonName(AbsBase):
@@ -54,14 +55,14 @@ class AbsCommonName(AbsBase):
         null=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         abstract = True
 
     def __repr__(self):
-        return "<%s>" % (self.name)
+        return f"<{self.name}>"
 
     def __str__(self):
-        return "<%s>" % (self.name)
+        return f"<{self.name}>"
 
 
 # ==============================================
@@ -70,7 +71,7 @@ class AbsCommonName(AbsBase):
 
 
 class Tag(AbsCommonName):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Tag"
         ordering = ("name",)
 
@@ -86,7 +87,7 @@ class Server(AbsCommonName):
         null=False,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Server"
         ordering = ("name",)
 
@@ -116,7 +117,7 @@ class Repo(AbsCommonName):
         blank=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Repo"
         indexes = [
             models.Index(fields=["name", "branch"]),
@@ -133,7 +134,7 @@ class Script(AbsCommonName):
         blank=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Script"
         ordering = ("name",)
 
@@ -153,7 +154,7 @@ class CopyType(AbsCommonName):
         blank=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "CopyType"
         ordering = ("name",)
 
@@ -182,7 +183,7 @@ class RepoPair(AbsCommonName):
         blank=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "RepoPair"
         ordering = ("name",)
 
@@ -199,14 +200,14 @@ class Component(AbsCommonName):
         blank=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Component"
         ordering = ("name",)
 
 
 class Feature(AbsCommonName):
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Feature"
         ordering = ("name",)
 
@@ -231,7 +232,7 @@ class Implementation(AbsBase):
         null=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Implementation"
         ordering = ("component", "feature")
         indexes = [
@@ -259,7 +260,7 @@ class Dependencies(AbsBase):
         null=True,
     )
 
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Dependencies"
         ordering = ("component", "uses")
         indexes = [

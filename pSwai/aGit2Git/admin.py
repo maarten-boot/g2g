@@ -20,7 +20,7 @@ LIST_PER_PAGE = 50
 
 
 @admin.register(Repo)
-class Repo(admin.ModelAdmin):
+class Repo(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "internal",
@@ -38,7 +38,7 @@ class Repo(admin.ModelAdmin):
 
 
 @admin.register(CopyType)
-class CopyType(admin.ModelAdmin):
+class CopyType(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "description",
@@ -57,7 +57,7 @@ class CopyType(admin.ModelAdmin):
 
 
 @admin.register(RepoPair)
-class RepoPair(admin.ModelAdmin):
+class RepoPair(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "description",
@@ -75,7 +75,7 @@ class RepoPair(admin.ModelAdmin):
 
 
 @admin.register(Server)
-class Server(admin.ModelAdmin):
+class Server(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "internal",
@@ -92,7 +92,7 @@ class Server(admin.ModelAdmin):
 
 
 @admin.register(Script)
-class Script(admin.ModelAdmin):
+class Script(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "repo",
@@ -105,7 +105,7 @@ class Script(admin.ModelAdmin):
 
 
 @admin.register(Component)
-class Component(admin.ModelAdmin):
+class Component(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "mainRepo",
@@ -118,7 +118,7 @@ class Component(admin.ModelAdmin):
 
 
 @admin.register(Feature)
-class Feature(admin.ModelAdmin):
+class Feature(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
         "description",
@@ -130,7 +130,7 @@ class Feature(admin.ModelAdmin):
 
 
 @admin.register(Implementation)
-class Implementation(admin.ModelAdmin):
+class Implementation(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "component",
         "feature",
@@ -145,7 +145,7 @@ class Implementation(admin.ModelAdmin):
 
 
 @admin.register(Dependencies)
-class Dependencies(admin.ModelAdmin):
+class Dependencies(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "component",
         "uses",

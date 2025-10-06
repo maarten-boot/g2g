@@ -13,126 +13,111 @@ from django.shortcuts import (
 from django.core.paginator import Paginator
 
 from appAutoGui.xauto import (
-    mapModel,
-    mapForm,
-    makeIndexFieldNames,
-    makeIndexFields,
-    getFilterPrefix,
-    getModelData2,
-    maxPerPagePaginate,
+    map_model,
+    map_form,
+    make_index_field_names,
+    make_index_fields,
+    get_filter_prefix,
+    get_model_data_from_autogui,
+    max_per_page_paginate,
     navigation,
 )
 
 
-def debugOn() -> bool:
+def with_debug() -> bool:
     return True
 
 
-def _getFilterHint(
+def _get_filter_hint(
     autogui_dict: Dict[str, Any],
-    modelName: str,
-    fieldName: str,
+    model_name: str,
+    field_name: str,
 ) -> str:
     # return the filter hint we use to actually filter,
     # so we can use fk fields also to filter on
-    fields = getModelData2(
+    fields = get_model_data_from_autogui(
         autogui_dict,
-        modelName,
+        model_name,
     )
     k = "filter"
-
-    if k not in fields:
+    if k not in fields:  # this model has no filters defined in auto gui
+        return None
+    if field_name not in fields[k]:  # this field is not filtarable in auto gui
         return None
 
-    if fieldName not in fields[k]:
-        return None
-
-    return fields[k][fieldName]
+    return fields[k][field_name]
 
 
-def _doOneIndexItem(
-    autogui_dict,
-    model,
-    postdata_key,
-    postdata_value,
-    prefix,
-) -> str | None:
-    """
-    remove the filter prefix leaving the field name
-    and then see if we can filter on this field in autoGui
-    """
-    if not postdata_value:
-        return None
-
-    fieldName = postdata_key.split(prefix)[1]
-    return _getFilterHint(
-        autogui_dict=autogui_dict,
-        modelName=model.__name__,
-        fieldName=fieldName,
-    )
-
-
-def _getSearchDataWithFilterApplied(
+def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
     index_path: str,
     autogui_dict: Dict[str, Any],
     model: Any,
-    postData: Any,
+    post_data: Any,
+    filter_dict: Dict[str, Any],
+    sort_dict: Dict[str, Any],
 ):
     """ """
-    prefix = getFilterPrefix()
-    filterDict = {}
+    _ = index_path
+    _ = post_data
+    _ = sort_dict
 
-    for postdata_key, postdata_value in postData.items():
-        if not postdata_key.startswith(prefix):
+    prefix = get_filter_prefix()
+    filters: Dict[str, Any] = {}
+
+    for filter_key, filter_value in filter_dict.items():
+        if not filter_key.startswith(prefix):
+            continue
+        if not filter_value:
             continue
 
-        filter_hint = _doOneIndexItem(
-            autogui_dict,
-            model,
-            postdata_key,
-            postdata_value,
-            prefix,
+        filter_hint = _get_filter_hint(
+            autogui_dict=autogui_dict,
+            model_name=model.__name__,
+            field_name=filter_key.split(prefix)[1],
         )
         if filter_hint:
-            filterDict[f"{filter_hint}__icontains"] = postdata_value
+            filters[f"{filter_hint}__icontains"] = filter_value
 
+    # fetch the data from the database, apply all configured filters
     return model.objects.filter(
-        **filterDict,
+        **filters,
     )
 
 
-def _splitPath(
-    fill_path,
+def _split_path(
+    full_path,
 ):
-    if debugOn():
-        print(f"fill_path: |{fill_path}|", file=sys.stderr)
+    if with_debug():
+        print(f"full_path: |{full_path}|", file=sys.stderr)
 
-    splitPath = []
-    if len(fill_path) > 0:
-        if len(fill_path) > 1:
-            splitPath = fill_path[1:][:-1].split("/")
+    split_path_list = []
+    if len(full_path) > 0:
+        if len(full_path) > 1:
+            split_path_list = full_path[1:][:-1].split("/")
 
-    if debugOn():
-        print(f"pathLen: {len(splitPath)} :: {splitPath}", file=sys.stderr)
+    if with_debug():
+        print(f"pathLen: {len(split_path_list)} :: {split_path_list}", file=sys.stderr)
 
-    return splitPath
+    return split_path_list
 
 
-def _startContext(
+def _start_context(
     autogui_dict,
     app_name: str,
     request,
 ) -> Dict[str, Any]:
-    fill_path = request.get_full_path()
+    _ = autogui_dict
+    _ = app_name
+    full_path = request.get_full_path()
 
-    title = str(fill_path)
-    action = fill_path
-    action_clean = fill_path.split("?")[0]
+    title = str(full_path)
+    action = full_path
+    action_clean = full_path.split("?")[0]
     # nav = navigation(autogui_dict, app_name)
     nav = navigation()
-    path = _splitPath(fill_path)
+    path = _split_path(full_path)
 
-    if debugOn():
+    if with_debug():
         print(f"path:: {path}", file=sys.stderr)
         print(f"action:: {action}", file=sys.stderr)
         print(f"action_clean:: {action_clean}", file=sys.stderr)
@@ -140,16 +125,16 @@ def _startContext(
 
     # currently only the first 2 elements can be link, and possibly the last after edit has been seen
     zpath = action_clean[1:][:-1].split("/")
-    xPath = {}
+    x_path = {}
     n = 0
     for idx, x in enumerate(zpath):
         if n < 2:
-            xPath[x] = "/" + "/".join(zpath[: (idx + 1)]) + "/"
+            x_path[x] = "/" + "/".join(zpath[: (idx + 1)]) + "/"
         else:
-            xPath[x] = ""
+            x_path[x] = ""
         n += 1
-        if debugOn():
-            print(x, xPath[x], file=sys.stderr)
+        if with_debug():
+            print(x, x_path[x], file=sys.stderr)
 
     context = {
         "title": title,
@@ -157,136 +142,140 @@ def _startContext(
         "action_clean": action_clean,
         "navigation": nav,
         "path": path,
-        "xPath": xPath,
+        "x_path": x_path,
     }
     return context
 
 
-def _getPostData(request):
-    postData = {}
+def _get_post_data(request):
+    post_data = {}
     if request.method == "POST":
-        postData = request.POST
-    return postData
+        post_data = request.POST
+    return post_data
 
 
-def _deleteAndRedirect(
+def _delete_and_redirect(
     model,
-    postData,
-    fill_path,
+    post_data,
+    full_path,
 ):
-    instance = model.objects.get(id=postData["delete"])
+    instance = model.objects.get(id=post_data["delete"])
     instance.delete()
-    fp3 = fill_path.replace("/delete/", "/")
-    fp3 = fp3.replace(postData["delete"], "")
+    fp3 = full_path.replace("/delete/", "/")
+    fp3 = fp3.replace(post_data["delete"], "")
     return redirect(f"{fp3}")
 
 
-def _doValidForm(
-    myForm,
-    postData,
-    fill_path,
+def _do_valid_form(
+    my_form,
+    post_data,
+    full_path,
     k,
     **kwargs,
 ):
-    item = myForm.save()
+    item = my_form.save()
     if k not in kwargs:  # no id field: we are adding
-        if "_addanother" in postData:
-            return redirect(f"{fill_path}")
+        if "_addanother" in post_data:
+            return redirect(f"{full_path}")
 
-        if "_continue" in postData:
-            fp2 = fill_path.replace("/add/", "/edit/")
+        if "_continue" in post_data:
+            fp2 = full_path.replace("/add/", "/edit/")
             return redirect(f"{fp2}{item.id}")
     else:  # we have id we are editing (delete was already done)
-        if "_addanother" in postData:
-            fp2 = fill_path.split("/edit/")[0] + "/add/"
+        if "_addanother" in post_data:
+            fp2 = full_path.split("/edit/")[0] + "/add/"
             return redirect(f"{fp2}")
 
     return None
 
 
-def _formInit(
+def _form_init(  # pylint:disable=W1113
     k,
     request,
     app_name=None,
-    autogui_dict={},
+    autogui_dict=None,
     *args,
     **kwargs,
 ):
-    fill_path = request.get_full_path()
-    if debugOn():
-        print(f"fill_path: {fill_path}", file=sys.stderr)
+    _ = args
+    if autogui_dict is None:
+        autogui_dict = {}
 
-    model = mapModel(autogui_dict, app_name, fill_path)
-    if debugOn():
+    full_path = request.get_full_path()
+    if with_debug():
+        print(f"full_path: {full_path}", file=sys.stderr)
+
+    model = map_model(autogui_dict, app_name, full_path)
+    if with_debug():
         print(f"model: {model}", file=sys.stderr)
 
-    postData = _getPostData(request)
-    if debugOn():
-        print(f"postData: {postData}", file=sys.stderr)
+    post_data = _get_post_data(request)
+    if with_debug():
+        print(f"post_data: {post_data}", file=sys.stderr)
 
-    splitPath = _splitPath(fill_path)
+    split_path_list = _split_path(full_path)
     what = None
-    if len(splitPath) > 2:
-        what = splitPath[2]
+    if len(split_path_list) > 2:
+        what = split_path_list[2]
 
-    xId = _getPrimaryKey(k, **kwargs)
-    mData = getModelData(model, xId)
-    if mData:
+    xid = _get_primary_key(k, **kwargs)
+    model_data = get_model_data(model, xid)
+    if model_data:
         # if we have data we can fill the form with the current data
-        myForm = mapForm(
+        my_form = map_form(
             autogui_dict,
             app_name,
-            fill_path,
-            instance=mData,
+            full_path,
+            instance=model_data,
         )
     else:
         # otherwise start a empty form
-        myForm = mapForm(
+        my_form = map_form(
             autogui_dict,
             app_name,
-            fill_path,
+            full_path,
             None,
         )
 
-    if debugOn():
-        print(f"myForm 0: {myForm} {mData}", file=sys.stderr)
+    if with_debug():
+        print(f"my_form 0: {my_form} {model_data}", file=sys.stderr)
 
-    return model, myForm, postData, fill_path, what, mData, xId
+    return model, my_form, post_data, full_path, what, model_data, xid
 
 
-def _getPrimaryKey(
+def _get_primary_key(
     k,
     **kwargs,
 ):
-    xId = None
+    xid = None
     if k in kwargs:
-        xId = kwargs[k]
-        if debugOn():
-            print(f"{k} exists: {xId}", file=sys.stderr)
-    return xId
+        xid = kwargs[k]
+        if with_debug():
+            print(f"{k} exists: {xid}", file=sys.stderr)
+    return xid
 
 
-def _doRenderFormData(
+def _do_render_form_data(  # pylint:disable=R0917,disable=R0913
     request,
     app_name,
     autogui_dict,
-    fill_path,
-    myForm,
-    xId,
+    full_path,
+    my_form,
+    xid,
     what,
 ):
-    path = _splitPath(fill_path)
+    path = _split_path(full_path)
 
     deleting = True if what == "delete" else False
     updating = True if what == "edit" else False
 
-    xDel = "/".join(["", path[0], path[1], "delete", str(xId)]) if xId else None
+    x_del = "/".join(["", path[0], path[1], "delete", str(xid)]) if xid else None
 
-    c1 = _startContext(autogui_dict, app_name, request)
+    c1 = _start_context(autogui_dict, app_name, request)
     c2 = {
-        "form": myForm,
-        "id": xId,
-        "delete": xDel,
+        "form": my_form,
+        "id": xid,
+        "delete": x_del,
         "deleting": deleting,
         "updating": updating,
     }
@@ -300,134 +289,142 @@ def _doRenderFormData(
     )
 
 
-def _doAddItem(
+def _do_add_item(  # pylint:disable=R0917,disable=R0913
     k,
     model,
-    myForm,
-    postData,
-    fill_path,
+    my_form,
+    post_data,
+    full_path,
     what,
-    mData,
-    xId,
+    model_data,
+    xid,
     request,
     autogui_dict,
     app_name,
     **kwargs,
 ):
     # asser we have model
-    # assert we have myForm
-    # assert no xId, no mData
+    # assert we have my_form
+    # assert no xid, no model_data
     # ading a new item, we have no id yet
 
-    if postData:
-        myForm = mapForm(
+    _ = model
+    _ = model_data
+
+    if post_data:
+        my_form = map_form(
             autogui_dict,
             app_name,
-            fill_path,
-            postData,
+            full_path,
+            post_data,
         )
-        if debugOn():
-            print(f"myForm 4: {myForm}", file=sys.stderr)
+        if with_debug():
+            print(f"my_form 4: {my_form}", file=sys.stderr)
 
-        if myForm.is_valid():
-            resp = _doValidForm(
-                myForm,
-                postData,
-                fill_path,
+        if my_form.is_valid():
+            resp = _do_valid_form(
+                my_form,
+                post_data,
+                full_path,
                 k,
                 **kwargs,
             )
             if resp:
                 return resp
 
-    return _doRenderFormData(
+    return _do_render_form_data(
         request,
         app_name,
         autogui_dict,
-        fill_path,
-        myForm,
-        xId,
+        full_path,
+        my_form,
+        xid,
         what,
     )
 
 
-def _doEditItem(
+def _do_edit_item(  # pylint:disable=R0917,disable=R0913
     k,
     model,
-    myForm,
-    postData,
-    fill_path,
+    my_form,
+    post_data,
+    full_path,
     what,
-    mData,
-    xId,
+    model_data,
+    xid,
     request,
     autogui_dict,
     app_name,
     **kwargs,
 ):
-    if postData:
-        if mData:
+    _ = model
+    if post_data:
+        if model_data:
             # update the form with the newly posted data
-            myForm = mapForm(
+            my_form = map_form(
                 autogui_dict,
                 app_name,
-                fill_path,
-                postData,
-                instance=mData,
+                full_path,
+                post_data,
+                instance=model_data,
             )
-            if debugOn():
-                print(f"myForm 2: {myForm}", file=sys.stderr)
+            if with_debug():
+                print(f"my_form 2: {my_form}", file=sys.stderr)
 
-            if myForm.is_valid():
-                resp = _doValidForm(
-                    myForm,
-                    postData,
-                    fill_path,
+            if my_form.is_valid():
+                resp = _do_valid_form(
+                    my_form,
+                    post_data,
+                    full_path,
                     k,
                     **kwargs,
                 )
                 if resp:
                     return resp
 
-    return _doRenderFormData(
+    return _do_render_form_data(
         request,
         app_name,
         autogui_dict,
-        fill_path,
-        myForm,
-        xId,
+        full_path,
+        my_form,
+        xid,
         what,
     )
 
 
-def _doDeleteItem(
+def _do_delete_item(  # pylint:disable=R0917,disable=R0913
     k,
     model,
-    myForm,
-    postData,
-    fill_path,
+    my_form,
+    post_data,
+    full_path,
     what,
-    mData,
-    xId,
+    model_data,
+    xid,
     request,
     autogui_dict,
     app_name,
     **kwargs,
 ):
-    if "delete" in postData:
-        return _deleteAndRedirect(
+    _ = k
+    _ = model_data
+    _ = kwargs
+
+    if "delete" in post_data:
+        return _delete_and_redirect(
             model,
-            postData,
-            fill_path,
+            post_data,
+            full_path,
         )
 
-    return _doRenderFormData(
+    return _do_render_form_data(
         request,
         app_name,
         autogui_dict,
-        fill_path,
-        myForm,
-        xId,
+        full_path,
+        my_form,
+        xid,
         what,
     )
 
@@ -435,65 +432,63 @@ def _doDeleteItem(
 # PUBLIC
 
 
-def getModelData(
+def get_model_data(
     model,
-    xId,
+    xid,
 ):
     """
     fetch the data from a mode and a pk
     """
-    mData = None
-    if model and xId:
-        mData = model.objects.get(pk=xId)
-        if debugOn():
-            print(f"mData: {mData}", file=sys.stderr)
-    return mData
+    model_data = None
+    if model and xid:
+        model_data = model.objects.get(pk=xid)
+        if with_debug():
+            print(f"model_data: {model_data}", file=sys.stderr)
+    return model_data
 
 
-def doPagingWithSearchFilters():
+def do_paging_with_search_filters():
     pass
 
 
-def doPerPage(
+def do_per_page(
     request: Any,
     autogui_dict: Dict[str, Any],
-    postData: Any,
+    post_data: Any,
 ) -> int | None:
-    maxPerPage = maxPerPagePaginate(autogui_dict)
+    max_per_page = max_per_page_paginate(autogui_dict)
 
     if autogui_dict is None or len(autogui_dict) == 0:
         return None
 
-    perPage = None
-    k = "perPage"
+    per_page = None
+    k = "per_page"
     if k in request.session:
-        perPage = request.session.get(k)
+        per_page = request.session.get(k)
 
     k2 = "perPage2"
     for j in [k, k2]:
-        z = postData.get(j)
+        z = post_data.get(j)
         if z:
             if int(z) != request.session[k]:
-                perPage = int(z)
-                if perPage <= 0:
-                    perPage = maxPerPage
-                if perPage > 1000:
-                    perPage = 1000
+                per_page = int(z)
+                per_page = max(per_page, 0)
+                per_page = min(per_page, 1000)
 
-    if perPage is None:
-        perPage = maxPerPage
+    if per_page is None:
+        per_page = max_per_page
 
-    request.session[k] = perPage  # set the new per page in the session
-    return perPage
+    request.session[k] = per_page  # set the new per page in the session
+    return per_page
 
 
-def getFilterDictInfo(
+def get_filter_dict_info(
     index_path: str,
     request: Any,
-    fieldNames: Dict[str, Any],
+    field_names: Dict[str, Any],
 ) -> Dict[str, Any]:
-    filter_prefix = getFilterPrefix()
-    postData = _getPostData(request)
+    filter_prefix = get_filter_prefix()
+    post_data = _get_post_data(request)
 
     filter_dict = {}
     session_key = f"{index_path}filter_dict"
@@ -502,144 +497,171 @@ def getFilterDictInfo(
     if request.session.get(session_key, False):
         filter_dict = request.session.get(session_key)
 
-    if debugOn():
+    if with_debug():
         print("FilterSession OLD", session_key, filter_dict, file=sys.stderr)
 
     # -----------------------------------
     filter_dict[f"{filter_prefix}_D"] = None
     filter_dict[f"{filter_prefix}_E"] = None
 
-    for name, label in fieldNames.items():
+    for name, label in field_names.items():
+        _ = label
         filter_key = f"{filter_prefix}{name}"
         if filter_key not in filter_dict:
             filter_dict[filter_key] = None
 
-        v = postData.get(filter_key)
+        v = post_data.get(filter_key)
         if v:
             filter_dict[filter_key] = v  # we now have a copy of the post data in filter dict
             if v == "*":
                 filter_dict[filter_key] = None
 
-    if debugOn():
+    if with_debug():
         print("FilterSession New", session_key, filter_dict, file=sys.stderr)
 
     request.session[session_key] = filter_dict
     return filter_dict
 
 
-def genericIndex(
+def _get_current_page_data(  # pylint:disable=R0917,disable=R0913
+    page_number: int,
+    per_page: int,
+    index_path: str,
+    autogui_dict: Dict[str, Any],
+    model: Any,
+    post_data: Any,
+    filter_dict: Dict[str, Any],
+    sort_dict: Dict[str, Any],
+) -> Any:
+    item_list = _get_search_data_with_filter_applied(
+        index_path=index_path,
+        autogui_dict=autogui_dict,
+        model=model,
+        post_data=post_data,
+        filter_dict=filter_dict,
+        sort_dict=sort_dict,
+    )
+    paginator = Paginator(
+        item_list,
+        per_page,
+    )
+
+    return paginator.get_page(page_number)
+
+
+def make_index_path(
+    request: Any,
+) -> str:
+    full_path = request.get_full_path()
+    index_path = full_path
+    split_path_list = _split_path(full_path)
+
+    if len(split_path_list) > 2:
+        index_path = "/" + "/".join(split_path_list[:2]) + "/"
+
+    return index_path
+
+
+def generic_index(  # pylint:disable= R0914
     autogui_dict,
     app_name,
     request,
     *args,
     **kwargs,
 ):
-    fill_path = request.get_full_path()
-    splitPath = _splitPath(fill_path)
-    if len(splitPath) < 2:
-        # we are either at the top level len==0 (home) or at the app level len==1
-        if len(splitPath) == 1:
-            # gather info on this app and show that
-            pass
-        else:
-            # gather info on the project and show that
-            pass
-        pass
+    index_path = make_index_path(request=request)
 
-    index_path = fill_path
-    if len(splitPath) > 2:
-        index_path = "/" + "/".join(splitPath[:2]) + "/"
+    _ = args
+    _ = kwargs
 
     model = None
-    fieldNames = {}
     if autogui_dict and len(autogui_dict) and app_name:
-        model = mapModel(
+        model = map_model(
             autogui_dict,
             app_name,
             index_path,
         )
 
+    field_names = {}
     if model:
-        fieldNames = getModelData2(
+        field_names = get_model_data_from_autogui(
             autogui_dict,
             model.__name__,
         ).get(
             "fields",
         )
 
-    postData = _getPostData(request)
-    perPage = doPerPage(
+    post_data = _get_post_data(request)
+    per_page = do_per_page(
         request,
         autogui_dict,
-        postData,  # we are looking for page size info and page offset
+        post_data,  # we are looking for page size info and page offset
     )
 
-    page_obj = None
-    data = []
-    filterDict = {}
-    sortDict = {}
-    names = makeIndexFieldNames(
+    names = make_index_field_names(
         autogui_dict,
         app_name,
         index_path,
     )
+
+    page_obj = None
+    page_data = []
+    filter_dict = {}
+    sort_dict = {}
     if model:
+        page_number = request.GET.get("page")
+
         # --- filter
-        filterDict = getFilterDictInfo(
+        filter_dict = get_filter_dict_info(
             index_path,
             request,
-            fieldNames,
+            field_names,
         )
         #         # --- sort
         #         if request.session.get('sort'):
-        #             sortDict = request.session.get('sort')
+        #             sort_dict = request.session.get('sort')
         #
         #         for colName in names:
         #             x = request.GET.get('sort')
         #             if x:
-        #             sortDict[colName] = "-"
-        #         request.session['sort'] = sortDict
+        #             sort_dict[colName] = "-"
+        #         request.session['sort'] = sort_dict
 
         # --- get data
         # get the current page of data we are about to prepare for display
-        item_list = _getSearchDataWithFilterApplied(
-            index_path,
+        page_obj = _get_current_page_data(
+            page_number=page_number,
+            per_page=per_page,
+            index_path=index_path,
+            autogui_dict=autogui_dict,
+            model=model,
+            post_data=post_data,
+            filter_dict=filter_dict,
+            sort_dict=sort_dict,
+        )
+    # --- get page data
+    if page_obj:
+        page_data = make_index_fields(
             autogui_dict,
-            model,
-            filterDict,
-            # postData,  # we are looking for filter hints
+            app_name,
+            index_path,
+            page_obj,  # the one page we will show
         )
-        paginator = Paginator(
-            item_list,
-            perPage,
-        )
-        page_number = request.GET.get("page")
-        page_obj = paginator.get_page(
-            page_number,
-        )
-        # --- get page
-        if page_obj:
-            names, data = makeIndexFields(
-                autogui_dict,
-                app_name,
-                index_path,
-                page_obj,  # the one page we will show
-            )
 
     # ---- prepare for display
-    c1 = _startContext(
+    c1 = _start_context(
         autogui_dict,
         app_name,
         request,
     )
     c2 = {
-        "perPage": perPage,
+        "perPage": per_page,
         "page_obj": page_obj,
-        "data": data,
+        "data": page_data,
         "colNames": names,
-        "postData": postData,
-        "filter": filterDict,
-        "sort": sortDict,
+        "postData": post_data,
+        "filter": filter_dict,
+        "sort": sort_dict,
     }
     context = c1 | c2  # merge the dicts
 
@@ -651,7 +673,7 @@ def genericIndex(
 
 
 # @login_required
-def genericForm(
+def generic_form(
     autogui_dict,
     app_name,
     request,
@@ -660,7 +682,7 @@ def genericForm(
 ):
     # request.session
     k = "id"
-    model, myForm, postData, fill_path, what, mData, xId = _formInit(
+    model, my_form, post_data, full_path, what, model_data, xid = _form_init(
         k,
         request,
         app_name,
@@ -671,15 +693,15 @@ def genericForm(
 
     if what == "add":
         # we see add as get and as post
-        return _doAddItem(
+        return _do_add_item(
             k,
             model,
-            myForm,
-            postData,
-            fill_path,
+            my_form,
+            post_data,
+            full_path,
             what,
-            mData,
-            xId,
+            model_data,
+            xid,
             request,
             autogui_dict,
             app_name,
@@ -688,15 +710,15 @@ def genericForm(
 
     if what == "delete":
         # we see delete as get and as post
-        return _doDeleteItem(
+        return _do_delete_item(
             k,
             model,
-            myForm,
-            postData,
-            fill_path,
+            my_form,
+            post_data,
+            full_path,
             what,
-            mData,
-            xId,
+            model_data,
+            xid,
             request,
             autogui_dict,
             app_name,
@@ -704,15 +726,15 @@ def genericForm(
         )
 
     if what == "edit":
-        return _doEditItem(
+        return _do_edit_item(
             k,
             model,
-            myForm,
-            postData,
-            fill_path,
+            my_form,
+            post_data,
+            full_path,
             what,
-            mData,
-            xId,
+            model_data,
+            xid,
             request,
             autogui_dict,
             app_name,
@@ -723,15 +745,15 @@ def genericForm(
         return None
 
     # not add, edit or delete, sort
-    if debugOn():
+    if with_debug():
         print("not one of [add, edit, delete, sort]", file=sys.stderr)
 
-    return _doRenderFormData(
+    return _do_render_form_data(
         request,
         app_name,
         autogui_dict,
-        fill_path,
-        myForm,
-        xId,
+        full_path,
+        my_form,
+        xid,
         what,
     )

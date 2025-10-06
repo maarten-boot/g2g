@@ -14,7 +14,7 @@ from aGit2Git.models import (
 )
 
 from aGit2Git.autoGui import AUTO_GUI
-from appAutoGui.xauto import getModelData2
+from appAutoGui.xauto import get_model_data_from_autogui
 
 
 def _gf(model):
@@ -22,7 +22,7 @@ def _gf(model):
     get all the field names from a given model using the json AUTOGUI tree
     """
     return (
-        getModelData2(
+        get_model_data_from_autogui(
             AUTO_GUI,
             model.__name__,
         )
@@ -32,54 +32,54 @@ def _gf(model):
 
 
 class ServerForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Server
         fields = _gf(model)
 
 
 class ScriptForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Script
         fields = _gf(model)
 
 
 class RepoForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Repo
         fields = _gf(model)
 
 
 class CopyTypeForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = CopyType
         fields = _gf(model)
 
 
 class RepoPairForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = RepoPair
         fields = _gf(model)
 
 
 class ComponentForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Component
         fields = _gf(model)
 
 
 class FeatureForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Feature
         fields = _gf(model)
 
 
 class ImplementationForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Implementation
         fields = _gf(model)
 
 
 class DependenciesForm(ModelForm):
-    class Meta:
+    class Meta:  # pylint:disable=R0903
         model = Dependencies
         fields = _gf(model)

@@ -1,3 +1,9 @@
+from typing import (
+    Any,
+    Dict,
+    List,
+)
+
 import sys
 from importlib import import_module
 from django.urls import path
@@ -6,16 +12,9 @@ from django.template import (
     Template,
 )
 
-from typing import (
-    Any,
-    Dict,
-    List,
-    Tuple,
-)
 
-
-def _importItem(
-    itemStr: str,
+def _import_item(
+    item_str: str,
 ) -> Any:
     """Import a item from its module
     itemStr: str is in the format module.item
@@ -29,22 +28,22 @@ def _importItem(
     we return the item or raise a error
     """
 
-    module_path, itemName = itemStr.rsplit(".", 1)
+    module_path, item_name = item_str.rsplit(".", 1)
     try:
         module = import_module(module_path)
-        item = getattr(module, itemName)
+        item = getattr(module, item_name)
     except (ImportError, AttributeError) as e:
         print(e, file=sys.stderr)
-        raise ImportError(itemStr)
+        raise ImportError(item_str) from e
 
     return item
 
 
-def _importClass(
-    klassStr: str,
+def _import_class(
+    klass_str: str,
 ) -> Any:
     """Import a class from its module
-    klassStr: str is in the format module.item
+    klass_str: str is in the format module.item
       where klass itself could have ' in it
       as we only split on the first '.'
 
@@ -55,38 +54,38 @@ def _importClass(
     we returen the klass or raise a error
     """
 
-    module_path, class_name = klassStr.rsplit(".", 1)
+    module_path, class_name = klass_str.rsplit(".", 1)
     try:
         module = import_module(module_path)
         klass = getattr(module, class_name)
     except (ImportError, AttributeError) as e:
         print(e, file=sys.stderr)
-        raise ImportError(klassStr)
+        raise ImportError(klass_str) from e
 
     return klass
 
 
-def _urlGenOne(
+def _url_gen_one(
     app,
     index,
     form,
-    navName: str,
+    nav_name: str,
 ) -> List[Any]:
     """
-    generate all CRUD urls for one (app,navName)
+    generate all CRUD urls for one (app,nav_name)
     """
     ll = [
         path(f"{app}/", index, name=f"{app}"),
-        path(f"{app}/{navName}/", index, name=f"{app}_{navName}"),
-        path(f"{app}/{navName}/add/", form, name=f"{app}_{navName}_add"),
-        path(f"{app}/{navName}/sort/<str:name>", index, name=f"{app}_{navName}_sort"),
-        path(f"{app}/{navName}/edit/<uuid:id>", form, name=f"{app}_{navName}_edit"),
-        path(f"{app}/{navName}/delete/<uuid:id>", form, name=f"{app}_{navName}_delete"),
+        path(f"{app}/{nav_name}/", index, name=f"{app}_{nav_name}"),
+        path(f"{app}/{nav_name}/add/", form, name=f"{app}_{nav_name}_add"),
+        path(f"{app}/{nav_name}/sort/<str:name>", index, name=f"{app}_{nav_name}_sort"),
+        path(f"{app}/{nav_name}/edit/<uuid:id>", form, name=f"{app}_{nav_name}_edit"),
+        path(f"{app}/{nav_name}/delete/<uuid:id>", form, name=f"{app}_{nav_name}_delete"),
     ]
     return ll
 
 
-def _mkIndexDeleteLink(
+def _mk_index_delete_link(
     pk: str,
 ):
     """
@@ -107,9 +106,8 @@ def _mkIndexDeleteLink(
     return " ".join(zz)
 
 
-def _mkIndexEditLink(
+def _mk_index_edit_link(
     pk: str,
-    name: str,
 ):
     """
     Make a link
@@ -132,43 +130,59 @@ def _mkIndexEditLink(
     return s
 
 
-def _defaultIndexFieldTemplate(
+def _default_index_field_template(
     name,
 ):
     return "{{ " + f"{name}" + " }}"
 
 
-def _addIndexFields(
-    xFields: Dict[str, Any],  # by ref so in and out
+def _add_index_fields(
+    i_fields: Dict[str, Any],  # by ref so in and out
     model_fields,
-    skipList,
+    skip_list,
 ) -> None:
     if model_fields:
         for k, v in model_fields.items():
-            if k in skipList:
+            if k in skip_list:
                 continue
-            xFields[v] = _defaultIndexFieldTemplate(k)
+            i_fields[v] = _default_index_field_template(k)
 
 
-def _addDefaultIndexFields(
+def _add_default_index_fields(
     model_fields,
 ) -> Dict[str, Any]:
     """
     Add extra columns for Delete: _D and Edit: _E
     """
-    xFields: Dict[str, Any] = {
-        "_D": _mkIndexDeleteLink("id"),
-        "_E": _mkIndexEditLink("id", "id"),
+    i_fields: Dict[str, Any] = {
+        "_D": _mk_index_delete_link("id"),
+        "_E": _mk_index_edit_link("id"),
     }
-    _addIndexFields(
-        xFields=xFields,
+    _add_index_fields(
+        i_fields=i_fields,
         model_fields=model_fields,
-        skipList=[],
+        skip_list=[],
     )
-    return xFields
+    return i_fields
 
 
-def _getMyIndexFields(
+def _get_nav_names(
+    autogui_dict: Dict[str, Any],
+) -> Dict[str, str]:
+    """from the given autogui_dict extract all nav parts in each model
+    autogui_dict: Dict[str,Any]: we pass the auto Gui dict as it holds all info
+    """
+    ret: Dict[str, str] = {}
+    k = "models"
+    for model_name, ag_model_dict in autogui_dict[k].items():
+        if "nav" not in ag_model_dict:
+            continue
+        nav_name = ag_model_dict["nav"]
+        ret[nav_name] = model_name
+    return ret
+
+
+def _get_my_index_fields(
     autogui_dict: Dict[str, Any],
     app_name: str,
     index_path: str,
@@ -176,7 +190,7 @@ def _getMyIndexFields(
     if len(autogui_dict) == 0:
         return {}
 
-    model = mapModel(
+    model = map_model(
         autogui_dict,
         app_name,
         index_path,
@@ -184,20 +198,22 @@ def _getMyIndexFields(
     if not model:
         return {}
 
-    model_fields: Dict[str, str] = getModelData2(
+    model_fields: Dict[str, str] = get_model_data_from_autogui(
         autogui_dict,
         model.__name__,
     ).get("fields")
 
-    navNames = getNavNames(autogui_dict).keys()
-    for name in navNames:
+    nav_names = _get_nav_names(autogui_dict).keys()
+    for name in nav_names:
         if index_path.startswith(f"/{app_name}/{name}/"):
-            return _addDefaultIndexFields(model_fields)
+            return _add_default_index_fields(
+                model_fields,
+            )
 
     return {}
 
 
-def _makeFieldsDictFromModel(
+def _make_fields_dict_from_model(
     autogui_dict: Dict[str, Any],
     instance,
 ) -> Dict[str, Any]:
@@ -209,10 +225,10 @@ def _makeFieldsDictFromModel(
     pk_name = "id"
     ret[pk_name] = getattr(instance, pk_name)
 
-    modelName = instance.__class__.__name__
-    fields = getModelData2(
+    model_name = instance.__class__.__name__
+    fields = get_model_data_from_autogui(
         autogui_dict,
-        modelName,
+        model_name,
     ).get("fields")
 
     for name in fields.keys():
@@ -221,11 +237,11 @@ def _makeFieldsDictFromModel(
     return ret
 
 
-def _makeHtmlRender(
-    tempString,
+def _make_html_render(
+    temp_string,
     item,
 ):
-    t = Template(tempString)
+    t = Template(temp_string)
     c = Context(item)
     html = t.render(c)
     return html
@@ -234,7 +250,7 @@ def _makeHtmlRender(
 # PUBLIC
 
 
-def urlGenAll(
+def url_gen_all(
     autogui_dict: Dict[str, Any],
     app_name: str,
     index,
@@ -243,34 +259,32 @@ def urlGenAll(
     if len(autogui_dict) == 0:
         return []
 
-    urlPatternList = []
-    navNameList = getNavNames(autogui_dict).keys()
-    for navName in navNameList:
-        z = _urlGenOne(
+    url_pattern_list = []
+    nav_name_list = _get_nav_names(autogui_dict).keys()
+    for nav_name in nav_name_list:
+        z = _url_gen_one(
             app_name,
             index,
             form,
-            navName,
+            nav_name,
         )
-        urlPatternList += z
+        url_pattern_list += z
 
-    return urlPatternList
+    return url_pattern_list
 
 
-def getModelData2(
+def get_model_data_from_autogui(
     autogui_dict: Dict[str, Any],
-    modelName: str,
+    model_name: str,
 ) -> Dict[str, str]:
-    print(autogui_dict  , modelName, file=sys.stderr)
-
     """get the fields for this model from the autogui_dict"""
     k = "models"
-    if modelName in autogui_dict[k]:
-        return autogui_dict[k][modelName]
+    if model_name in autogui_dict[k]:
+        return autogui_dict[k][model_name]
     return {}
 
 
-def maxPerPagePaginate(
+def max_per_page_paginate(
     autogui_dict: Dict[str, Any],
 ) -> int:
     k = "max_per_page"
@@ -279,49 +293,34 @@ def maxPerPagePaginate(
     return 15
 
 
-def appNavigation(
+def app_navigation(
     autogui_dict: Dict[str, Any],
     app_name: str,
 ) -> List[Dict[str, str]]:
     """only create the nav for this app_name"""
-    rr = []
-    zz = autogui_dict.get("navigation")
-    if zz:
-        for k, v in zz.items():
+    nav_list = []
+    nav = autogui_dict.get("navigation")
+    if nav:
+        for label, internal_name in nav.items():
             data = {
-                "url": "/" + app_name + "/" + v + "/",
-                "label": k,
+                "url": "/" + app_name + "/" + internal_name + "/",
+                "label": label,
             }
-            rr.append(data)
-    return rr
+            nav_list.append(data)
+    return nav_list
 
 
-def getNavNames(
-    autogui_dict: Dict[str, Any],
-) -> Dict[str, str]:
-    """from the given autogui_dict extract all nav parts in each model
-    autogui_dict: Dict[str,Any]: we pass the auto Gui dict as it holds all info
-    """
-    ret: Dict[str, str] = {}
-    k = "models"
-    for name, v in autogui_dict[k].items():
-        if "nav" not in v:
-            continue
-        ret[v["nav"]] = name
-    return ret
-
-
-def mapForm(
+def map_form(
     autogui_dict: Dict[str, Any],
     app_name: str,
-    fp: str,
+    form_path: str,
     *args,
     **kwargs,
 ) -> Any:
     """
     autogui_dict: Dict[str, Any]"
     app_name: str:
-    fp: str:
+    form_path: str:
     *args:
     **kwargs"
 
@@ -329,50 +328,50 @@ def mapForm(
     if len(autogui_dict) == 0:
         return None
 
-    navDict = getNavNames(autogui_dict)
-    for nav, modelName in navDict.items():
-        if fp.startswith(f"/{app_name}/{nav}/"):
+    nav_dict = _get_nav_names(autogui_dict)
+    for nav_name, model_name in nav_dict.items():
+        if form_path.startswith(f"/{app_name}/{nav_name}/"):
             class_str = ".".join(
                 [
                     app_name,
                     "forms",
-                    modelName + "Form",
+                    model_name + "Form",
                 ],
             )
-            klass = _importClass(class_str)
+            klass = _import_class(class_str)
             return klass(*args, **kwargs)
     return None
 
 
-def mapModel(
+def map_model(
     autogui_dict: Dict[str, Any],
     app_name: str,
-    fp,
+    index_path,
 ) -> Any:
     """ """
     if len(autogui_dict) == 0:
         return None
 
-    navDict = getNavNames(autogui_dict)
-    for nav, modelName in navDict.items():
-        if fp.startswith(f"/{app_name}/{nav}/"):
+    nav_dict = _get_nav_names(autogui_dict)
+    for nav, model_name in nav_dict.items():
+        if index_path.startswith(f"/{app_name}/{nav}/"):
             class_str = ".".join(
                 [
                     app_name,
                     "models",
-                    modelName,
+                    model_name,
                 ],
             )
-            klass = _importClass(class_str)
+            klass = _import_class(class_str)
             return klass
     return None
 
 
-def getKnownApps():
-    return ["aGit2Git"]  # todo: currently hardcoded
+def get_known_apps():
+    return ["aGit2Git"]  # to_do: currently hardcoded
 
 
-def addNavHome():
+def _add_nav_home():
     data = {
         "url": "/",
         "label": "Home",
@@ -383,14 +382,15 @@ def addNavHome():
 
 
 def navigation():
-    nav = {}
-
-    nav["_home"] = addNavHome()
-
     # for all known apps create the nav for this app, add optional admin and home
     # return the nav as dict
-    for app_name in getKnownApps():
-        appAutoGuiDict = _importItem(
+
+    nav = {}
+    nav["_home"] = _add_nav_home()
+
+    for app_name in get_known_apps():
+        # if the app has a auto_gui defined we can add its navigation data to the final navigation {}
+        autogui_dict = _import_item(
             ".".join(
                 [
                     app_name,
@@ -399,60 +399,64 @@ def navigation():
                 ],
             ),
         )
-        if appAutoGuiDict:
-            nav[app_name] = appNavigation(appAutoGuiDict, app_name)
+        if autogui_dict:
+            nav[app_name] = app_navigation(
+                autogui_dict,
+                app_name,
+            )
+
     return nav
 
 
-def getFilterPrefix() -> str:
+def get_filter_prefix() -> str:
     return "filter-"
 
 
-def makeIndexFieldNames(
+def make_index_field_names(
     autogui_dict: Dict[str, Any],
     app_name: str,
     index_path: str,
 ) -> List[str]:
     names = []
-    myFields = _getMyIndexFields(
+    my_fields = _get_my_index_fields(
         autogui_dict,
         app_name,
         index_path,
     )
-    for name, _ in myFields.items():
+    for name, _ in my_fields.items():
         if name not in names:
             names.append(name)
 
     return names
 
 
-def makeIndexFields(
+def make_index_fields(
     autogui_dict: Dict[str, Any],
     app_name: str,
     index_path: str,
     page_obj,
-) -> Tuple[
-    List[str],
-    List[Dict[str, Any]],
-]:
+) -> List[Dict[str, Any]]:
     data = []
-    names = makeIndexFieldNames(autogui_dict, app_name, index_path)
     if page_obj:
-        myFields = _getMyIndexFields(autogui_dict, app_name, index_path)
+        my_fields = _get_my_index_fields(
+            autogui_dict,
+            app_name,
+            index_path,
+        )
         for instance in page_obj:
-            fieldData = _makeFieldsDictFromModel(
+            field_data = _make_fields_dict_from_model(
                 autogui_dict,
                 instance,
             )
-            fieldData["action"] = index_path
-            fieldData["action_clean"] = index_path.split("?")[0]
+            field_data["action"] = index_path
+            field_data["action_clean"] = index_path.split("?")[0]
 
             fields = {}
-            for name, v in myFields.items():
-                fields[name] = _makeHtmlRender(
+            for name, v in my_fields.items():
+                fields[name] = _make_html_render(
                     v,
-                    fieldData,
+                    field_data,
                 )
             data.append(fields)
 
-    return names, data
+    return data

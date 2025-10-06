@@ -2,8 +2,8 @@
 
 from aGit2Git.autoGui import AUTO_GUI
 from appAutoGui.genericViews import (
-    genericForm,
-    genericIndex,
+    generic_form,
+    generic_index,
 )
 
 
@@ -14,7 +14,7 @@ def form(
     **kwargs,
 ):
     app_name = __package__
-    return genericForm(
+    return generic_form(
         autogui_dict=AUTO_GUI,
         app_name=app_name,
         request=request,
@@ -29,7 +29,7 @@ def index(
     **kwargs,
 ):
     app_name = __package__
-    return genericIndex(
+    return generic_index(
         autogui_dict=AUTO_GUI,
         app_name=app_name,
         request=request,

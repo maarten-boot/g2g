@@ -11,8 +11,8 @@ from django.contrib.auth import (
 from appAutoGui import forms
 
 from appAutoGui.genericViews import (
-    genericForm,
-    genericIndex,
+    generic_form,
+    generic_index,
 )
 
 TWO_WEEKS_IN_SECONDS = int(60 * 60 * 24 * 7 * 2)
@@ -25,7 +25,7 @@ def form(
     **kwargs,
 ):
     app_name = __package__
-    return genericForm(
+    return generic_form(
         {},
         app_name,
         request,
@@ -63,7 +63,7 @@ def index(
         return redirect(settings.LOGIN_URL)
 
     app_name = __package__
-    return genericIndex(
+    return generic_index(
         autogui_dict={},
         app_name=app_name,
         request=request,
@@ -83,16 +83,20 @@ def login_view(
     request,
 ):
     if request.method != "POST":
-        form = forms.LoginForm()
+        forms.LoginForm()
         return redirect(settings.LOGIN_URL)
 
-    form = forms.LoginForm(request.POST)
-    if form.is_valid():
-        username = form.cleaned_data["loginName"]
-        password = form.cleaned_data["loginPassword"]
-        remember_me = form.cleaned_data["loginCheck"]
+    xform = forms.LoginForm(request.POST)
+    if xform.is_valid():
+        username = xform.cleaned_data["loginName"]
+        password = xform.cleaned_data["loginPassword"]
+        remember_me = xform.cleaned_data["loginCheck"]
 
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(
+            request,
+            username=username,
+            password=password,
+        )
         if user is not None:
             login(request, user)
             if not remember_me:
