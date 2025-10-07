@@ -35,7 +35,7 @@ All index pages can search and filter on each fields using the input fields unde
 
 Filter fields are defind in xauth per model, fk fields use <fieldname>__name to seach on the fk name.
 
-All filter fields currently use only icontains.
+All filter fields currently use only icontains. this does not work for bool fields.
 
 ## Add/Edit/Delete
 

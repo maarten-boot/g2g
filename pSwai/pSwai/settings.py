@@ -203,7 +203,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGGING = {
+LOGGING: dict = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
@@ -262,14 +262,15 @@ LOGGING = {
 }
 
 
-MY_LOGGERS = {}
+MY_LOGGERS: dict = {}
 for app in INSTALLED_APPS:
-    MY_LOGGERS[app] = {
+    MY_LOGGERS[str(app)] = {
         "handlers": env.list("DJANGO_LOGGERS_HANDLERS_APP"),
         "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),
         "propagate": True,
     }
-LOGGING["loggers"].update(MY_LOGGERS)
+for _k, _v in MY_LOGGERS.items():
+    LOGGING["loggers"][_k] = _v
 
 
 class CustomFormRenderer(TemplatesSetting):

@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 
-class SignupForm(UserCreationForm):  # pylint:disable=R0901
+class SignupForm(UserCreationForm):  # pylint:disable=R0901; type: ignore
     class Meta:  # pylint:disable=R0903
         model = User
         fields = [

@@ -1,8 +1,5 @@
 # Todo
 
- - add filter settings to session as app_name/filters
- - test filter bool fields
-
 ## bulk actions
 
  - we have the selector for bulkaction but nothing else

@@ -1,7 +1,5 @@
 from typing import (
     Any,
-    Dict,
-    List,
 )
 
 import sys
@@ -70,7 +68,7 @@ def _url_gen_one(
     index,
     form,
     nav_name: str,
-) -> List[Any]:
+) -> list[Any]:
     """
     generate all CRUD urls for one (app,nav_name)
     """
@@ -137,9 +135,9 @@ def _default_index_field_template(
 
 
 def _add_index_fields(
-    i_fields: Dict[str, Any],  # by ref so in and out
-    model_fields,
-    skip_list,
+    i_fields: dict[str, Any],  # by ref so in and out
+    model_fields: dict[str, str],
+    skip_list: list[str],
 ) -> None:
     if model_fields:
         for k, v in model_fields.items():
@@ -149,12 +147,12 @@ def _add_index_fields(
 
 
 def _add_default_index_fields(
-    model_fields,
-) -> Dict[str, Any]:
+    model_fields: dict[str, str],
+) -> dict[str, Any]:
     """
     Add extra columns for Delete: _D and Edit: _E
     """
-    i_fields: Dict[str, Any] = {
+    i_fields: dict[str, Any] = {
         "_D": _mk_index_delete_link("id"),
         "_E": _mk_index_edit_link("id"),
     }
@@ -167,12 +165,12 @@ def _add_default_index_fields(
 
 
 def _get_nav_names(
-    autogui_dict: Dict[str, Any],
-) -> Dict[str, str]:
+    autogui_dict: dict[str, Any],
+) -> dict[str, str]:
     """from the given autogui_dict extract all nav parts in each model
-    autogui_dict: Dict[str,Any]: we pass the auto Gui dict as it holds all info
+    autogui_dict: dict[str,Any]: we pass the auto Gui dict as it holds all info
     """
-    ret: Dict[str, str] = {}
+    ret: dict[str, str] = {}
     k = "models"
     for model_name, ag_model_dict in autogui_dict[k].items():
         if "nav" not in ag_model_dict:
@@ -183,7 +181,7 @@ def _get_nav_names(
 
 
 def _get_my_index_fields(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
     index_path: str,
 ):
@@ -198,26 +196,28 @@ def _get_my_index_fields(
     if not model:
         return {}
 
-    model_fields: Dict[str, str] = get_model_data_from_autogui(
+    z = get_model_data_from_autogui(
         autogui_dict,
         model.__name__,
-    ).get("fields")
-
-    nav_names = _get_nav_names(autogui_dict).keys()
-    for name in nav_names:
-        if index_path.startswith(f"/{app_name}/{name}/"):
-            return _add_default_index_fields(
-                model_fields,
-            )
+    )
+    if z:
+        model_fields: dict[str, str] = z.get("fields", {})
+        p = _get_nav_names(autogui_dict)
+        nav_names: list[str] = list(p.keys())
+        for name in nav_names:
+            if index_path.startswith(f"/{app_name}/{name}/"):
+                return _add_default_index_fields(
+                    model_fields,
+                )
 
     return {}
 
 
 def _make_fields_dict_from_model(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     instance,
-) -> Dict[str, Any]:
-    ret: Dict[str, Any] = {}
+) -> dict[str, Any]:
+    ret: dict[str, Any] = {}
 
     if not instance:
         return ret
@@ -226,11 +226,11 @@ def _make_fields_dict_from_model(
     ret[pk_name] = getattr(instance, pk_name)
 
     model_name = instance.__class__.__name__
-    fields = get_model_data_from_autogui(
+    p = get_model_data_from_autogui(
         autogui_dict,
         model_name,
-    ).get("fields")
-
+    )
+    fields = p.get("fields", {})
     for name in fields.keys():
         ret[name] = getattr(instance, name)
 
@@ -251,11 +251,11 @@ def _make_html_render(
 
 
 def url_gen_all(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
     index,
     form,
-) -> List[str]:
+) -> list[str]:
     if len(autogui_dict) == 0:
         return []
 
@@ -274,9 +274,9 @@ def url_gen_all(
 
 
 def get_model_data_from_autogui(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     model_name: str,
-) -> Dict[str, str]:
+) -> dict[str, dict[str, Any]]:
     """get the fields for this model from the autogui_dict"""
     k = "models"
     if model_name in autogui_dict[k]:
@@ -285,7 +285,7 @@ def get_model_data_from_autogui(
 
 
 def max_per_page_paginate(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
 ) -> int:
     k = "max_per_page"
     if k in autogui_dict:
@@ -294,9 +294,9 @@ def max_per_page_paginate(
 
 
 def app_navigation(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """only create the nav for this app_name"""
     nav_list = []
     nav = autogui_dict.get("navigation")
@@ -311,14 +311,14 @@ def app_navigation(
 
 
 def map_form(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
     form_path: str,
     *args,
     **kwargs,
 ) -> Any:
     """
-    autogui_dict: Dict[str, Any]"
+    autogui_dict: dict[str, Any]"
     app_name: str:
     form_path: str:
     *args:
@@ -344,9 +344,9 @@ def map_form(
 
 
 def map_model(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
-    index_path,
+    index_path: str,
 ) -> Any:
     """ """
     if len(autogui_dict) == 0:
@@ -367,11 +367,11 @@ def map_model(
     return None
 
 
-def get_known_apps():
+def get_known_apps() -> list[str]:
     return ["aGit2Git"]  # to_do: currently hardcoded
 
 
-def _add_nav_home():
+def _add_nav_home() -> list[dict[str, str]]:
     data = {
         "url": "/",
         "label": "Home",
@@ -381,7 +381,7 @@ def _add_nav_home():
     return zz
 
 
-def navigation():
+def navigation() -> dict[str, Any]:
     # for all known apps create the nav for this app, add optional admin and home
     # return the nav as dict
 
@@ -413,10 +413,10 @@ def get_filter_prefix() -> str:
 
 
 def make_index_field_names(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
     index_path: str,
-) -> List[str]:
+) -> list[str]:
     names = []
     my_fields = _get_my_index_fields(
         autogui_dict,
@@ -431,11 +431,11 @@ def make_index_field_names(
 
 
 def make_index_fields(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     app_name: str,
     index_path: str,
     page_obj,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     data = []
     if page_obj:
         my_fields = _get_my_index_fields(

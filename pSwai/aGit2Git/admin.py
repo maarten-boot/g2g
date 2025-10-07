@@ -6,20 +6,20 @@ from django.contrib import admin
 # from django.urls import reverse
 
 # from aGit2Git.models import Tag
-from aGit2Git.models import Server
-from aGit2Git.models import Repo
-from aGit2Git.models import RepoPair
-from aGit2Git.models import CopyType
-from aGit2Git.models import Script
-from aGit2Git.models import Component
-from aGit2Git.models import Feature
-from aGit2Git.models import Implementation
-from aGit2Git.models import Dependencies
+from aGit2Git.models import Server as _Server
+from aGit2Git.models import Repo as _Repo
+from aGit2Git.models import RepoPair as _RepoPair
+from aGit2Git.models import CopyType as _CopyType
+from aGit2Git.models import Script as _Script
+from aGit2Git.models import Component as _Component
+from aGit2Git.models import Feature as _Feature
+from aGit2Git.models import Implementation as _Implementation
+from aGit2Git.models import Dependencies as _Dependencies
 
 LIST_PER_PAGE = 50
 
 
-@admin.register(Repo)
+@admin.register(_Repo)
 class Repo(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -37,7 +37,7 @@ class Repo(admin.ModelAdmin):  # pylint:disable=E0102
     )
 
 
-@admin.register(CopyType)
+@admin.register(_CopyType)
 class CopyType(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -56,7 +56,7 @@ class CopyType(admin.ModelAdmin):  # pylint:disable=E0102
     )
 
 
-@admin.register(RepoPair)
+@admin.register(_RepoPair)
 class RepoPair(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -74,7 +74,7 @@ class RepoPair(admin.ModelAdmin):  # pylint:disable=E0102
     )
 
 
-@admin.register(Server)
+@admin.register(_Server)
 class Server(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -91,7 +91,7 @@ class Server(admin.ModelAdmin):  # pylint:disable=E0102
     )
 
 
-@admin.register(Script)
+@admin.register(_Script)
 class Script(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -104,7 +104,7 @@ class Script(admin.ModelAdmin):  # pylint:disable=E0102
     list_filter = ("updStamp",)
 
 
-@admin.register(Component)
+@admin.register(_Component)
 class Component(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -117,7 +117,7 @@ class Component(admin.ModelAdmin):  # pylint:disable=E0102
     list_filter = ("updStamp",)
 
 
-@admin.register(Feature)
+@admin.register(_Feature)
 class Feature(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "name",
@@ -129,7 +129,7 @@ class Feature(admin.ModelAdmin):  # pylint:disable=E0102
     list_filter = ("updStamp",)
 
 
-@admin.register(Implementation)
+@admin.register(_Implementation)
 class Implementation(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "component",
@@ -144,7 +144,7 @@ class Implementation(admin.ModelAdmin):  # pylint:disable=E0102
     list_filter = ("updStamp",)
 
 
-@admin.register(Dependencies)
+@admin.register(_Dependencies)
 class Dependencies(admin.ModelAdmin):  # pylint:disable=E0102
     list_display = (
         "component",

@@ -2,7 +2,6 @@ import sys
 
 from typing import (
     Any,
-    Dict,
 )
 
 from django.shortcuts import (
@@ -29,10 +28,10 @@ def with_debug() -> bool:
 
 
 def _get_filter_hint(
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     model_name: str,
     field_name: str,
-) -> str:
+) -> str | None:
     # return the filter hint we use to actually filter,
     # so we can use fk fields also to filter on
     fields = get_model_data_from_autogui(
@@ -42,6 +41,7 @@ def _get_filter_hint(
     k = "filter"
     if k not in fields:  # this model has no filters defined in auto gui
         return None
+
     if field_name not in fields[k]:  # this field is not filtarable in auto gui
         return None
 
@@ -50,11 +50,11 @@ def _get_filter_hint(
 
 def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
     index_path: str,
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     model: Any,
     post_data: Any,
-    filter_dict: Dict[str, Any],
-    sort_dict: Dict[str, Any],
+    filter_dict: dict[str, Any],
+    sort_dict: dict[str, Any],
 ):
     """ """
     _ = index_path
@@ -62,7 +62,7 @@ def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
     _ = sort_dict
 
     prefix = get_filter_prefix()
-    filters: Dict[str, Any] = {}
+    filters: dict[str, Any] = {}
 
     for filter_key, filter_value in filter_dict.items():
         if not filter_key.startswith(prefix):
@@ -105,7 +105,7 @@ def _start_context(
     autogui_dict,
     app_name: str,
     request,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     _ = autogui_dict
     _ = app_name
     full_path = request.get_full_path()
@@ -453,7 +453,7 @@ def do_paging_with_search_filters():
 
 def do_per_page(
     request: Any,
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     post_data: Any,
 ) -> int | None:
     max_per_page = max_per_page_paginate(autogui_dict)
@@ -485,8 +485,8 @@ def do_per_page(
 def get_filter_dict_info(
     index_path: str,
     request: Any,
-    field_names: Dict[str, Any],
-) -> Dict[str, Any]:
+    field_names: dict[str, Any],
+) -> dict[str, Any]:
     filter_prefix = get_filter_prefix()
     post_data = _get_post_data(request)
 
@@ -527,11 +527,11 @@ def _get_current_page_data(  # pylint:disable=R0917,disable=R0913
     page_number: int,
     per_page: int,
     index_path: str,
-    autogui_dict: Dict[str, Any],
+    autogui_dict: dict[str, Any],
     model: Any,
     post_data: Any,
-    filter_dict: Dict[str, Any],
-    sort_dict: Dict[str, Any],
+    filter_dict: dict[str, Any],
+    sort_dict: dict[str, Any],
 ) -> Any:
     item_list = _get_search_data_with_filter_applied(
         index_path=index_path,

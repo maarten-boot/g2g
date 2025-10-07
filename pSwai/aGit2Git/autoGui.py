@@ -1,10 +1,7 @@
 # import sys
 
-from typing import (
-    Dict,
-)
 
-AUTO_GUI: Dict = {
+AUTO_GUI: dict = {
     "max_per_page": 5,
     "navigation": {  # label , internal name used on model.nav:
         "Server": "server",
