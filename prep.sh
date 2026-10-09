@@ -1,21 +1,18 @@
 #! /bin/bash
 
-rm -rf venv bin include lib lib84
+rm -rf venv
+make venv
+source ./venv/bin/activate
 
-VENV="$(realpath . )/venv"
-python -m venv venv
-python -m venv --upgrade venv
-source $VENV/bin/activate
-pip install -U -r requirements.txt
+(
+    cd pSwai
 
-bash reformat.sh
-cd pSwai
+    ./manage.py makemigrations
+    ./manage.py migrate
 
-./manage.py makemigrations
-./manage.py migrate
+    # ./manage.py collectstatic
+    # ./manage.py createsuperuser admin
+    # ./manage.py runserver --insecure
+)
 
-# ./manage.py collectstatic
-# ./manage.py createsuperuser admin
-# ./manage.py runserver --insecure
-
-sudo systemctl restart gunicorn003
+make restart

@@ -17,17 +17,15 @@ Including another URLconf
 
 import sys
 
+from appAutoGui import views  # the project view is outside of all apps
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.conf.urls.static import static
-from django.conf import settings
 from django.urls import (
     include,
     path,
 )
-
-
-from appAutoGui import views  # the project view is outside of all apps
 
 for appName in settings.INSTALLED_APPS:
     if appName.startswith("django."):

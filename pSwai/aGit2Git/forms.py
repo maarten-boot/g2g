@@ -1,20 +1,18 @@
+from appAutoGui.xauto import get_model_data_from_autogui
 from django.forms import ModelForm
 
-
+from aGit2Git.autoGui import AUTO_GUI
 from aGit2Git.models import (
-    Server,
-    Script,
-    Repo,
-    RepoPair,
-    CopyType,
     Component,
+    CopyType,
+    Dependencies,
     Feature,
     Implementation,
-    Dependencies,
+    Repo,
+    RepoPair,
+    Script,
+    Server,
 )
-
-from aGit2Git.autoGui import AUTO_GUI
-from appAutoGui.xauto import get_model_data_from_autogui
 
 
 def _gf(model):

@@ -1,6 +1,6 @@
 from django.forms import (
-    Form,
     CharField,
+    Form,
     # BooleanField,
     PasswordInput,
 )

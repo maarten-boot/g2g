@@ -2,19 +2,19 @@
 
 from django.contrib import admin
 
-# from django.contrib.admin.views.main import ChangeList
-# from django.urls import reverse
-
-# from aGit2Git.models import Tag
-from aGit2Git.models import Server as _Server
-from aGit2Git.models import Repo as _Repo
-from aGit2Git.models import RepoPair as _RepoPair
-from aGit2Git.models import CopyType as _CopyType
-from aGit2Git.models import Script as _Script
 from aGit2Git.models import Component as _Component
+from aGit2Git.models import CopyType as _CopyType
+from aGit2Git.models import Dependencies as _Dependencies
 from aGit2Git.models import Feature as _Feature
 from aGit2Git.models import Implementation as _Implementation
-from aGit2Git.models import Dependencies as _Dependencies
+from aGit2Git.models import Repo as _Repo
+from aGit2Git.models import RepoPair as _RepoPair
+from aGit2Git.models import Script as _Script
+
+# from django.contrib.admin.views.main import ChangeList
+# from django.urls import reverse
+# from aGit2Git.models import Tag
+from aGit2Git.models import Server as _Server
 
 LIST_PER_PAGE = 50
 

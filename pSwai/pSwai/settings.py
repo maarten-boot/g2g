@@ -5,14 +5,15 @@ Django settings for pSwai project.
 import os
 import sys
 from pathlib import Path
-from dotenv import find_dotenv
+
 import environ
 import ldap
-from django_auth_ldap.config import (
-    LDAPSearch,
-    ActiveDirectoryGroupType,
-)
 from django.forms.renderers import TemplatesSetting
+from django_auth_ldap.config import (
+    ActiveDirectoryGroupType,
+    LDAPSearch,
+)
+from dotenv import find_dotenv
 
 # ------------------------
 # set up env

@@ -1,14 +1,14 @@
+import sys
+from importlib import import_module
 from typing import (
     Any,
 )
 
-import sys
-from importlib import import_module
-from django.urls import path
 from django.template import (
     Context,
     Template,
 )
+from django.urls import path
 
 
 def _import_item(

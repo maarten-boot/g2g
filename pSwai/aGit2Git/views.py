@@ -1,10 +1,11 @@
 # import sys
 
-from aGit2Git.autoGui import AUTO_GUI
 from appAutoGui.genericViews import (
     generic_form,
     generic_index,
 )
+
+from aGit2Git.autoGui import AUTO_GUI
 
 
 # @login_required

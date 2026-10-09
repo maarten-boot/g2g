@@ -1,23 +1,21 @@
 import sys
-
 from typing import (
     Any,
 )
 
+from django.core.paginator import Paginator
 from django.shortcuts import (
-    render,
     redirect,
+    render,
 )
 
-from django.core.paginator import Paginator
-
 from appAutoGui.xauto import (
-    map_model,
-    map_form,
-    make_index_field_names,
-    make_index_fields,
     get_filter_prefix,
     get_model_data_from_autogui,
+    make_index_field_names,
+    make_index_fields,
+    map_form,
+    map_model,
     max_per_page_paginate,
     navigation,
 )

@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("aGit2Git", "0008_alter_implementation_implemented"),
     ]

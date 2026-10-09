@@ -2,7 +2,6 @@
 import uuid
 
 # from typing import Dict
-
 from django.db import models
 
 # from django.conf import settings
@@ -33,7 +32,6 @@ class AbsBase(models.Model):
     )
 
     class Meta:  # pylint:disable=R0903
-
         abstract = True
 
     def __repr__(self):
@@ -206,7 +204,6 @@ class Component(AbsCommonName):
 
 
 class Feature(AbsCommonName):
-
     class Meta:  # pylint:disable=R0903
         verbose_name_plural = "Feature"
         ordering = ("name",)

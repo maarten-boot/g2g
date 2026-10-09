@@ -6,4 +6,4 @@ Django-ldap
 django_auth_ldap
 python-dotenv
 python-dotenv[cli]
-python-environ
+django-environ

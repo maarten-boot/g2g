@@ -1,21 +1,20 @@
 import sys
 
 from django.conf import settings
-from django.shortcuts import redirect
 from django.contrib.auth import (
-    logout,
-    login,
     authenticate,
+    login,
+    logout,
 )
+from django.shortcuts import redirect
 
 from appAutoGui import forms
-
 from appAutoGui.genericViews import (
     generic_form,
     generic_index,
 )
 
-TWO_WEEKS_IN_SECONDS = int(60 * 60 * 24 * 7 * 2)
+TWO_WEEKS_IN_SECONDS = 60 * 60 * 24 * 7 * 2
 
 
 # @login_required
