@@ -50,6 +50,11 @@
         # "PT028", # Test function parameter has default argument
         # "S324", # Probable use of insecure hash functions in `hashlib`: `sha1`
     ]
+
+[lint.per-file-ignores]
+    # django TestCase uses self.assert*(), and test users get dummy passwords
+    "**/tests.py" = ["PT009", "PT027", "S105", "S106"]
+
 [format]
     # Like Black, use double quotes for strings.
     quote-style = "double"

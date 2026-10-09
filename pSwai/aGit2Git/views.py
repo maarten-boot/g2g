@@ -1,14 +1,13 @@
-# import sys
-
 from appAutoGui.genericViews import (
     generic_form,
     generic_index,
 )
+from django.contrib.auth.decorators import login_required
 
 from aGit2Git.autoGui import AUTO_GUI
 
 
-# @login_required
+@login_required
 def form(
     request,
     *args,
@@ -24,6 +23,7 @@ def form(
     )
 
 
+@login_required
 def index(
     request,
     *args,

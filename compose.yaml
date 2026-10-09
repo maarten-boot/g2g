@@ -26,8 +26,20 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      # inside the container "localhost" is the web container itself; the database is the "db" service.
+      # this overrides DJANGO_DATABASE_URL from .env so .env can keep pointing at localhost for local runs.
+      DJANGO_DATABASE_URL: psql://${POSTGRES_USER:-g2g}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-g2g}
+      # there is no /dev/log (syslog) in the container: log to the console, docker collects it
+      DJANGO_LOGGERS_HANDLERS: console
+      DJANGO_LOGGERS_HANDLERS_ROOT: console
+      DJANGO_LOGGERS_HANDLERS_APP: console
     volumes:
       - static:/app/static
+      # the host's CA bundle (public + internal CAs, e.g. the one that signed the AD certificates)
+      # on the same path, so LDAP_CA_CERT_FILE in .env works the same on the host and in the container.
+      # override with HOST_CA_BUNDLE when the host keeps it elsewhere (e.g. /etc/pki/tls/certs/ca-bundle.crt)
+      - ${HOST_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}:/etc/ssl/certs/ca-certificates.crt:ro
     expose:
       - "8000"
     depends_on:

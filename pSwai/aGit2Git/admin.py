@@ -13,7 +13,6 @@ from aGit2Git.models import Script as _Script
 
 # from django.contrib.admin.views.main import ChangeList
 # from django.urls import reverse
-# from aGit2Git.models import Tag
 from aGit2Git.models import Server as _Server
 
 LIST_PER_PAGE = 50
@@ -140,7 +139,7 @@ class Implementation(admin.ModelAdmin):  # pylint:disable=E0102
         "updStamp",
     )
     list_per_page = LIST_PER_PAGE
-    search_fields = ("component", "feature")
+    search_fields = ("component__name", "feature__name")
     list_filter = ("updStamp",)
 
 
@@ -153,5 +152,5 @@ class Dependencies(admin.ModelAdmin):  # pylint:disable=E0102
         "updStamp",
     )
     list_per_page = LIST_PER_PAGE
-    search_fields = ("component", "uses")
+    search_fields = ("component__name", "uses__name")
     list_filter = ("updStamp",)

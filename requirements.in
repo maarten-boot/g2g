@@ -1,0 +1,9 @@
+# top-level runtime dependencies; requirements.txt pins these plus their dependencies.
+# after a change here: make requirements (resolves in the same python image as the Dockerfile)
+Django
+django-auth-ldap
+python-ldap
+django-environ
+python-dotenv
+psycopg2-binary
+gunicorn

@@ -15,8 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-import sys
-
 from appAutoGui import views  # the project view is outside of all apps
 from django.conf import settings
 from django.conf.urls.static import static
@@ -26,14 +24,6 @@ from django.urls import (
     include,
     path,
 )
-
-for appName in settings.INSTALLED_APPS:
-    if appName.startswith("django."):
-        continue
-
-    print(f"i see {appName}", file=sys.stderr)
-    # now see if we have file autoGui.py
-    # and if we have urls.py
 
 urlpatterns = [
     path("admin/", admin.site.urls, name="admin"),

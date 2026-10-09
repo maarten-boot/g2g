@@ -1,14 +1,20 @@
-import sys
+import functools
+import logging
 from importlib import import_module
+from importlib.util import find_spec
 from typing import (
     Any,
 )
 
+from django.apps import apps
+from django.forms import modelform_factory
 from django.template import (
     Context,
     Template,
 )
 from django.urls import path
+
+logger = logging.getLogger(__name__)
 
 
 def _import_item(
@@ -31,36 +37,10 @@ def _import_item(
         module = import_module(module_path)
         item = getattr(module, item_name)
     except (ImportError, AttributeError) as e:
-        print(e, file=sys.stderr)
+        logger.error("import failed: %s", e)
         raise ImportError(item_str) from e
 
     return item
-
-
-def _import_class(
-    klass_str: str,
-) -> Any:
-    """Import a class from its module
-    klass_str: str is in the format module.item
-      where klass itself could have ' in it
-      as we only split on the first '.'
-
-    we first split the string in module and klass parts
-    then import the module
-    and from the module we import the klass
-
-    we returen the klass or raise a error
-    """
-
-    module_path, class_name = klass_str.rsplit(".", 1)
-    try:
-        module = import_module(module_path)
-        klass = getattr(module, class_name)
-    except (ImportError, AttributeError) as e:
-        print(e, file=sys.stderr)
-        raise ImportError(klass_str) from e
-
-    return klass
 
 
 def _url_gen_one(
@@ -237,11 +217,18 @@ def _make_fields_dict_from_model(
     return ret
 
 
+@functools.lru_cache(maxsize=256)
+def _compile_template(
+    temp_string: str,
+) -> Template:
+    return Template(temp_string)
+
+
 def _make_html_render(
     temp_string,
     item,
 ):
-    t = Template(temp_string)
+    t = _compile_template(temp_string)
     c = Context(item)
     html = t.render(c)
     return html
@@ -331,16 +318,28 @@ def map_form(
     nav_dict = _get_nav_names(autogui_dict)
     for nav_name, model_name in nav_dict.items():
         if form_path.startswith(f"/{app_name}/{nav_name}/"):
-            class_str = ".".join(
-                [
-                    app_name,
-                    "forms",
-                    model_name + "Form",
-                ],
-            )
-            klass = _import_class(class_str)
+            klass = _get_form_class(autogui_dict, app_name, model_name)
             return klass(*args, **kwargs)
     return None
+
+
+def _get_form_class(
+    autogui_dict: dict[str, Any],
+    app_name: str,
+    model_name: str,
+) -> Any:
+    """the app may override a form in <app>.forms as <Model>Form,
+    otherwise a ModelForm is generated with the fields listed in the auto gui dict
+    """
+    if find_spec(f"{app_name}.forms"):
+        forms_module = import_module(f"{app_name}.forms")
+        override = getattr(forms_module, f"{model_name}Form", None)
+        if override is not None:
+            return override
+
+    model = _import_item(f"{app_name}.models.{model_name}")
+    fields = list(get_model_data_from_autogui(autogui_dict, model_name).get("fields", {}).keys())
+    return modelform_factory(model, fields=fields)
 
 
 def map_model(
@@ -362,13 +361,14 @@ def map_model(
                     model_name,
                 ],
             )
-            klass = _import_class(class_str)
+            klass = _import_item(class_str)
             return klass
     return None
 
 
 def get_known_apps() -> list[str]:
-    return ["aGit2Git"]  # to_do: currently hardcoded
+    """the installed apps that have an autoGui.py"""
+    return [config.name for config in apps.get_app_configs() if find_spec(f"{config.name}.autoGui")]
 
 
 def _add_nav_home() -> list[dict[str, str]]:

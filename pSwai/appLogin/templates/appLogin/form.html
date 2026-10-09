@@ -5,6 +5,7 @@
 <table>
     <form action="/login/" method="POST">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
         {{ form.as_table }}
         <tr>
             <td></td>

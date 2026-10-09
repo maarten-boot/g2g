@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 # builder: python-ldap has no wheels, it must be compiled against libldap
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -26,14 +26,17 @@ RUN pip install --upgrade pip \
 # ---------------------------------------------------------------------------
 # runtime: shared libraries only, no compilers in the shipped image
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
     DJANGO_SETTINGS_MODULE=pSwai.settings
 
+# ca-certificates provides /etc/ssl/certs/ca-certificates.crt; compose mounts the host's bundle
+# over it so the internal CAs (LDAP_CA_CERT_FILE) are trusted inside the container too
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
         libldap-2.5-0 \
         libsasl2-2 \
     && rm -rf /var/lib/apt/lists/*

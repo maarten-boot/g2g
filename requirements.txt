@@ -1,9 +1,12 @@
-psycopg2-binary
-python-ldap
-gunicorn
-Django
-Django-ldap
-django_auth_ldap
-python-dotenv
-python-dotenv[cli]
-django-environ
+# pinned, generated from requirements.in by `make requirements` (python:3.14-slim-bookworm)
+asgiref==3.12.1
+Django==6.1.2
+django-auth-ldap==5.3.0
+django-environ==0.14.0
+gunicorn==26.2.0
+psycopg2-binary==2.9.13
+pyasn1==0.6.4
+pyasn1_modules==0.4.2
+python-dotenv==1.2.4
+python-ldap==3.4.8
+sqlparse==0.6.0

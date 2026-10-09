@@ -1,10 +1,11 @@
-import sys
+import logging
 from typing import (
     Any,
 )
 
 from django.core.paginator import Paginator
 from django.shortcuts import (
+    get_object_or_404,
     redirect,
     render,
 )
@@ -20,9 +21,7 @@ from appAutoGui.xauto import (
     navigation,
 )
 
-
-def with_debug() -> bool:
-    return True
+logger = logging.getLogger(__name__)
 
 
 def _get_filter_hint(
@@ -76,25 +75,27 @@ def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
         if filter_hint:
             filters[f"{filter_hint}__icontains"] = filter_value
 
+    # foreign keys shown as columns are fetched in the same query, not one query per row
+    shown = get_model_data_from_autogui(autogui_dict, model.__name__).get("fields", {})
+    related = [f.name for f in model._meta.get_fields() if f.many_to_one and f.name in shown]
+
     # fetch the data from the database, apply all configured filters
     return model.objects.filter(
         **filters,
-    )
+    ).select_related(*related)
 
 
 def _split_path(
     full_path,
 ):
-    if with_debug():
-        print(f"full_path: |{full_path}|", file=sys.stderr)
+    logger.debug("full_path: |%s|", full_path)
 
     split_path_list = []
     if len(full_path) > 0:
         if len(full_path) > 1:
             split_path_list = full_path[1:][:-1].split("/")
 
-    if with_debug():
-        print(f"pathLen: {len(split_path_list)} :: {split_path_list}", file=sys.stderr)
+    logger.debug("pathLen: %s :: %s", len(split_path_list), split_path_list)
 
     return split_path_list
 
@@ -115,11 +116,10 @@ def _start_context(
     nav = navigation()
     path = _split_path(full_path)
 
-    if with_debug():
-        print(f"path:: {path}", file=sys.stderr)
-        print(f"action:: {action}", file=sys.stderr)
-        print(f"action_clean:: {action_clean}", file=sys.stderr)
-        print(f"navigation:: {nav}", file=sys.stderr)
+    logger.debug("path:: %s", path)
+    logger.debug("action:: %s", action)
+    logger.debug("action_clean:: %s", action_clean)
+    logger.debug("navigation:: %s", nav)
 
     # currently only the first 2 elements can be link, and possibly the last after edit has been seen
     zpath = action_clean[1:][:-1].split("/")
@@ -131,8 +131,7 @@ def _start_context(
         else:
             x_path[x] = ""
         n += 1
-        if with_debug():
-            print(x, x_path[x], file=sys.stderr)
+        logger.debug("%s %s", x, x_path[x])
 
     context = {
         "title": title,
@@ -154,14 +153,14 @@ def _get_post_data(request):
 
 def _delete_and_redirect(
     model,
-    post_data,
+    xid,
     full_path,
 ):
-    instance = model.objects.get(id=post_data["delete"])
+    # delete the item named in the url (not an id from the posted data), then back to the index
+    instance = get_object_or_404(model, pk=xid)
     instance.delete()
-    fp3 = full_path.replace("/delete/", "/")
-    fp3 = fp3.replace(post_data["delete"], "")
-    return redirect(f"{fp3}")
+    index_path = full_path.split("/delete/")[0] + "/"
+    return redirect(index_path)
 
 
 def _do_valid_form(
@@ -200,16 +199,12 @@ def _form_init(  # pylint:disable=W1113
         autogui_dict = {}
 
     full_path = request.get_full_path()
-    if with_debug():
-        print(f"full_path: {full_path}", file=sys.stderr)
+    logger.debug("full_path: %s", full_path)
 
     model = map_model(autogui_dict, app_name, full_path)
-    if with_debug():
-        print(f"model: {model}", file=sys.stderr)
+    logger.debug("model: %s", model)
 
     post_data = _get_post_data(request)
-    if with_debug():
-        print(f"post_data: {post_data}", file=sys.stderr)
 
     split_path_list = _split_path(full_path)
     what = None
@@ -235,8 +230,7 @@ def _form_init(  # pylint:disable=W1113
             None,
         )
 
-    if with_debug():
-        print(f"my_form 0: {my_form} {model_data}", file=sys.stderr)
+    logger.debug("my_form 0: %s %s", my_form, model_data)
 
     return model, my_form, post_data, full_path, what, model_data, xid
 
@@ -248,8 +242,7 @@ def _get_primary_key(
     xid = None
     if k in kwargs:
         xid = kwargs[k]
-        if with_debug():
-            print(f"{k} exists: {xid}", file=sys.stderr)
+        logger.debug("%s exists: %s", k, xid)
     return xid
 
 
@@ -316,8 +309,7 @@ def _do_add_item(  # pylint:disable=R0917,disable=R0913
             full_path,
             post_data,
         )
-        if with_debug():
-            print(f"my_form 4: {my_form}", file=sys.stderr)
+        logger.debug("my_form 4: %s", my_form)
 
         if my_form.is_valid():
             resp = _do_valid_form(
@@ -366,8 +358,7 @@ def _do_edit_item(  # pylint:disable=R0917,disable=R0913
                 post_data,
                 instance=model_data,
             )
-            if with_debug():
-                print(f"my_form 2: {my_form}", file=sys.stderr)
+            logger.debug("my_form 2: %s", my_form)
 
             if my_form.is_valid():
                 resp = _do_valid_form(
@@ -412,7 +403,7 @@ def _do_delete_item(  # pylint:disable=R0917,disable=R0913
     if "delete" in post_data:
         return _delete_and_redirect(
             model,
-            post_data,
+            xid,
             full_path,
         )
 
@@ -439,9 +430,8 @@ def get_model_data(
     """
     model_data = None
     if model and xid:
-        model_data = model.objects.get(pk=xid)
-        if with_debug():
-            print(f"model_data: {model_data}", file=sys.stderr)
+        model_data = get_object_or_404(model, pk=xid)
+        logger.debug("model_data: %s", model_data)
     return model_data
 
 
@@ -467,11 +457,14 @@ def do_per_page(
     k2 = "perPage2"
     for j in [k, k2]:
         z = post_data.get(j)
-        if z:
-            if int(z) != request.session[k]:
-                per_page = int(z)
-                per_page = max(per_page, 0)
-                per_page = min(per_page, 1000)
+        if not z:
+            continue
+        try:
+            per_page = int(z)
+        except ValueError:
+            continue  # not a number: keep the current page size
+        per_page = max(per_page, 1)  # 0 would make the Paginator divide by zero
+        per_page = min(per_page, 1000)
 
     if per_page is None:
         per_page = max_per_page
@@ -495,8 +488,7 @@ def get_filter_dict_info(
     if request.session.get(session_key, False):
         filter_dict = request.session.get(session_key)
 
-    if with_debug():
-        print("FilterSession OLD", session_key, filter_dict, file=sys.stderr)
+    logger.debug("FilterSession OLD %s %s", session_key, filter_dict)
 
     # -----------------------------------
     filter_dict[f"{filter_prefix}_D"] = None
@@ -514,8 +506,7 @@ def get_filter_dict_info(
             if v == "*":
                 filter_dict[filter_key] = None
 
-    if with_debug():
-        print("FilterSession New", session_key, filter_dict, file=sys.stderr)
+    logger.debug("FilterSession New %s %s", session_key, filter_dict)
 
     request.session[session_key] = filter_dict
     return filter_dict
@@ -743,8 +734,7 @@ def generic_form(
         return None
 
     # not add, edit or delete, sort
-    if with_debug():
-        print("not one of [add, edit, delete, sort]", file=sys.stderr)
+    logger.debug("not one of [add, edit, delete, sort]")
 
     return _do_render_form_data(
         request,

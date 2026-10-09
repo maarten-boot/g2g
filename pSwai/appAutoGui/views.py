@@ -1,36 +1,19 @@
-import sys
+import logging
 
-from django.conf import settings
 from django.contrib.auth import (
     authenticate,
     login,
-    logout,
 )
 from django.shortcuts import redirect
 
 from appAutoGui import forms
 from appAutoGui.genericViews import (
-    generic_form,
     generic_index,
 )
 
+logger = logging.getLogger(__name__)
+
 TWO_WEEKS_IN_SECONDS = 60 * 60 * 24 * 7 * 2
-
-
-# @login_required
-def form(
-    request,
-    *args,
-    **kwargs,
-):
-    app_name = __package__
-    return generic_form(
-        {},
-        app_name,
-        request,
-        *args,
-        **kwargs,
-    )
 
 
 def index(
@@ -55,11 +38,11 @@ def index(
                 else:
                     request.session.set_expiry(TWO_WEEKS_IN_SECONDS)
             else:
-                print("user not valid", file=sys.stderr)
+                logger.info("login failed for user %s", username)
         else:
-            print("form not valid", file=sys.stderr)
+            logger.info("login form not valid")
 
-        return redirect(settings.LOGIN_URL)
+        return redirect("home")
 
     app_name = __package__
     return generic_index(
@@ -69,38 +52,3 @@ def index(
         *args,
         **kwargs,
     )
-
-
-def logout_view(
-    request,
-):
-    logout(request)
-    return redirect(f"{settings.LOGIN_URL}")
-
-
-def login_view(
-    request,
-):
-    if request.method != "POST":
-        forms.LoginForm()
-        return redirect(settings.LOGIN_URL)
-
-    xform = forms.LoginForm(request.POST)
-    if xform.is_valid():
-        username = xform.cleaned_data["loginName"]
-        password = xform.cleaned_data["loginPassword"]
-        remember_me = xform.cleaned_data["loginCheck"]
-
-        user = authenticate(
-            request,
-            username=username,
-            password=password,
-        )
-        if user is not None:
-            login(request, user)
-            if not remember_me:
-                request.session.set_expiry(0)
-            else:
-                request.session.set_expiry(TWO_WEEKS_IN_SECONDS)
-
-    return redirect(settings.LOGIN_URL)
