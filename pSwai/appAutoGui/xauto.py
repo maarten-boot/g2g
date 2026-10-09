@@ -56,7 +56,6 @@ def _url_gen_one(
         path(f"{app}/", index, name=f"{app}"),
         path(f"{app}/{nav_name}/", index, name=f"{app}_{nav_name}"),
         path(f"{app}/{nav_name}/add/", form, name=f"{app}_{nav_name}_add"),
-        path(f"{app}/{nav_name}/sort/<str:name>", index, name=f"{app}_{nav_name}_sort"),
         path(f"{app}/{nav_name}/edit/<uuid:id>", form, name=f"{app}_{nav_name}_edit"),
         path(f"{app}/{nav_name}/delete/<uuid:id>", form, name=f"{app}_{nav_name}_delete"),
     ]

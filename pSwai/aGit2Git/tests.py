@@ -219,3 +219,117 @@ class IndexQueryCountTests(LoggedInTestCase):
 
     def test_query_count_does_not_grow_with_rows(self):
         self.assertEqual(self._count_queries(2), self._count_queries(4))
+
+
+class BooleanFilterTests(LoggedInTestCase):
+    """boolean columns filter on an exact yes/no value instead of a text match"""
+
+    def setUp(self):
+        super().setUp()
+        Server.objects.create(name="inside", url="https://inside.invalid/", internal=True)
+        Server.objects.create(name="outside", url="https://outside.invalid/", internal=False)
+
+    def _shown(self, value: str) -> set[str]:
+        r = self.client.post(SERVER_INDEX, {"filter-internal": value})
+        self.assertEqual(r.status_code, 200)
+        return {name for name in ("inside", "outside") if f">{name}<" in r.content.decode()}
+
+    def test_true_values(self):
+        for value in ("yes", "Y", "true", "True", "1", "on"):
+            self.assertEqual(self._shown(value), {"inside"}, value)
+
+    def test_false_values(self):
+        for value in ("no", "N", "false", "False", "0", "off"):
+            self.assertEqual(self._shown(value), {"outside"}, value)
+
+    def test_unrecognised_value_does_not_filter(self):
+        self.assertEqual(self._shown("maybe"), {"inside", "outside"})
+
+    def test_star_clears_the_filter(self):
+        self._shown("no")
+        self.assertEqual(self._shown("*"), {"inside", "outside"})
+
+    def test_text_fields_still_use_contains(self):
+        r = self.client.post(SERVER_INDEX, {"filter-name": "INSI"})
+        self.assertContains(r, ">inside<")
+        self.assertNotContains(r, ">outside<")
+
+
+class SortAndClearTests(LoggedInTestCase):
+    """header links sort (asc -> desc -> off), Cs clears sorting, Cf clears the filters"""
+
+    NAMES = ("alpha", "bravo", "charlie")
+
+    def setUp(self):
+        super().setUp()
+        # urls in the opposite order of the names
+        for name, url in zip(
+            self.NAMES, ("https://z.invalid/", "https://y.invalid/", "https://x.invalid/"), strict=True
+        ):
+            Server.objects.create(name=name, url=url)
+
+    def _order(self, path=SERVER_INDEX, names=NAMES) -> list[str]:
+        content = self.client.get(path).content.decode()
+        return sorted((n for n in names if f">{n}<" in content), key=lambda n: content.index(f">{n}<"))
+
+    def _click(self, query: str, path=SERVER_INDEX):
+        r = self.client.get(f"{path}?{query}")
+        self.assertRedirects(r, path, fetch_redirect_response=False)  # clean url, refresh does not toggle again
+
+    def test_default_order_is_the_model_ordering(self):
+        self.assertEqual(self._order(), ["alpha", "bravo", "charlie"])
+
+    def test_header_cycles_ascending_descending_off(self):
+        self._click("sort-Url")
+        self.assertEqual(self._order(), ["charlie", "bravo", "alpha"])  # url ascending
+        self._click("sort-Url")
+        self.assertEqual(self._order(), ["alpha", "bravo", "charlie"])  # url descending
+        self._click("sort-Url")
+        self.assertEqual(self._order(), ["alpha", "bravo", "charlie"])  # off: model ordering
+        self.assertNotIn(f"{SERVER_INDEX}sort", self.client.session)
+
+    def test_other_column_starts_ascending(self):
+        self._click("sort-Name")
+        self._click("sort-Name")  # name descending
+        self._click("sort-Url")
+        self.assertEqual(self._order(), ["charlie", "bravo", "alpha"])
+
+    def test_indicator_on_sorted_column(self):
+        self._click("sort-Name")
+        self.assertContains(self.client.get(SERVER_INDEX), "Name ▲")
+        self._click("sort-Name")
+        self.assertContains(self.client.get(SERVER_INDEX), "Name ▼")
+
+    def test_clear_sorting(self):
+        self._click("sort-Url")
+        self._click("clear-sorting-all")
+        self.assertEqual(self._order(), ["alpha", "bravo", "charlie"])
+
+    def test_unknown_column_is_ignored(self):
+        self._click("sort-NoSuchColumn")
+        self.assertEqual(self._order(), ["alpha", "bravo", "charlie"])
+
+    def test_foreign_key_column_sorts_on_the_related_name(self):
+        servers = {s.name: s for s in Server.objects.all()}
+        # repo names in the opposite order of their server names
+        for repo, server in (("r3", "alpha"), ("r2", "bravo"), ("r1", "charlie")):
+            Repo.objects.create(name=repo, url=f"https://{repo}.invalid/", server=servers[server])
+        repo_index = "/aGit2Git/repo/"
+        self.assertEqual(self._order(repo_index, ("r1", "r2", "r3")), ["r1", "r2", "r3"])
+        self._click("sort-Server", repo_index)
+        self.assertEqual(self._order(repo_index, ("r1", "r2", "r3")), ["r3", "r2", "r1"])
+
+    def test_clear_filters(self):
+        self.client.post(SERVER_INDEX, {"filter-name": "alp"})
+        self.assertEqual(self._order(), ["alpha"])
+        self._click("clear-filters-all")
+        self.assertEqual(self._order(), ["alpha", "bravo", "charlie"])
+
+    def test_clear_filters_keeps_other_pages_filters(self):
+        self.client.post(SERVER_INDEX, {"filter-name": "alp"})
+        self.client.post("/aGit2Git/repo/", {"filter-name": "x"})
+        self._click("clear-filters-all")
+        self.assertEqual(self.client.session["/aGit2Git/repo/filter_dict"]["filter-name"], "x")
+
+    def test_old_sort_route_is_gone(self):
+        self.assertEqual(self.client.get(f"{SERVER_INDEX}sort/Name").status_code, 404)

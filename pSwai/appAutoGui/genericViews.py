@@ -3,7 +3,9 @@ from typing import (
     Any,
 )
 
+from django.core.exceptions import FieldDoesNotExist
 from django.core.paginator import Paginator
+from django.db import models
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -45,6 +47,33 @@ def _get_filter_hint(
     return fields[k][field_name]
 
 
+# what can be typed in the filter of a boolean column
+_TRUE_VALUES = {"yes", "y", "true", "t", "1", "on"}
+_FALSE_VALUES = {"no", "n", "false", "f", "0", "off"}
+
+
+def _parse_bool(value: str) -> bool | None:
+    v = value.strip().lower()
+    if v in _TRUE_VALUES:
+        return True
+    if v in _FALSE_VALUES:
+        return False
+    return None
+
+
+def _lookup_field(model: Any, path: str) -> Any:
+    """the model field a filter hint like "server__internal" points at, following foreign keys"""
+    field = None
+    for part in path.split("__"):
+        try:
+            field = model._meta.get_field(part)
+        except FieldDoesNotExist:
+            return None
+        if field.is_relation and field.related_model is not None:
+            model = field.related_model
+    return field
+
+
 def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
     index_path: str,
     autogui_dict: dict[str, Any],
@@ -56,7 +85,6 @@ def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
     """ """
     _ = index_path
     _ = post_data
-    _ = sort_dict
 
     prefix = get_filter_prefix()
     filters: dict[str, Any] = {}
@@ -72,7 +100,17 @@ def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
             model_name=model.__name__,
             field_name=filter_key.split(prefix)[1],
         )
-        if filter_hint:
+        if not filter_hint:
+            continue
+
+        if isinstance(_lookup_field(model, filter_hint), models.BooleanField):
+            # booleans match exactly on yes/no (true/false, 1/0, on/off); anything else: no filter
+            wanted = _parse_bool(filter_value)
+            if wanted is None:
+                logger.debug("ignoring filter %s=%r: not a yes/no value", filter_hint, filter_value)
+                continue
+            filters[filter_hint] = wanted
+        else:
             filters[f"{filter_hint}__icontains"] = filter_value
 
     # foreign keys shown as columns are fetched in the same query, not one query per row
@@ -80,9 +118,38 @@ def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
     related = [f.name for f in model._meta.get_fields() if f.many_to_one and f.name in shown]
 
     # fetch the data from the database, apply all configured filters
-    return model.objects.filter(
+    queryset = model.objects.filter(
         **filters,
     ).select_related(*related)
+
+    order = _order_by(autogui_dict, model, sort_dict)
+    if order:
+        queryset = queryset.order_by(*order)
+    return queryset
+
+
+def _order_by(
+    autogui_dict: dict[str, Any],
+    model: Any,
+    sort_dict: dict[str, Any],
+) -> list[str]:
+    """the order_by() for the current sort; empty means the model's default ordering"""
+    field_name = sort_dict.get("field")
+    if not field_name:
+        return []
+
+    # sort on the same lookup the filter uses (e.g. server__name), so foreign keys sort on the name
+    lookup = _get_filter_hint(autogui_dict, model.__name__, field_name) or field_name
+    field = _lookup_field(model, lookup)
+    if field is None:
+        return []
+    if field.is_relation and field.related_model is not None:
+        related_names = {f.name for f in field.related_model._meta.get_fields()}
+        if "name" in related_names:
+            lookup = f"{lookup}__name"
+
+    direction = "-" if sort_dict.get("desc") else ""
+    return [f"{direction}{lookup}", "pk"]  # pk last: a stable order when the values are equal
 
 
 def _split_path(
@@ -482,7 +549,7 @@ def get_filter_dict_info(
     post_data = _get_post_data(request)
 
     filter_dict = {}
-    session_key = f"{index_path}filter_dict"
+    session_key = _filter_session_key(index_path)
     # -----------------------------------
     # if exist start with the current sesion data
     if request.session.get(session_key, False):
@@ -538,6 +605,56 @@ def _get_current_page_data(  # pylint:disable=R0917,disable=R0913
     return paginator.get_page(page_number)
 
 
+SORT_PREFIX = "sort-"
+CLEAR_SORTING = "clear-sorting-all"
+CLEAR_FILTERS = "clear-filters-all"
+
+
+def _sort_session_key(index_path: str) -> str:
+    return f"{index_path}sort"
+
+
+def _filter_session_key(index_path: str) -> str:
+    return f"{index_path}filter_dict"
+
+
+def _handle_index_actions(
+    request: Any,
+    index_path: str,
+    field_names: dict[str, str],
+) -> Any:
+    """the header links of the index: sort a column (asc -> desc -> off), clear the sorting,
+    clear the filters. Returns a redirect to the clean index url, or None when there is no action.
+    The state is kept in the session per index page.
+    """
+    actions = [k for k in request.GET if k.startswith(SORT_PREFIX) or k in (CLEAR_SORTING, CLEAR_FILTERS)]
+    if not actions:
+        return None
+
+    sort_key = _sort_session_key(index_path)
+    for action in actions:
+        if action == CLEAR_FILTERS:
+            request.session.pop(_filter_session_key(index_path), None)
+        elif action == CLEAR_SORTING:
+            request.session.pop(sort_key, None)
+        else:
+            label = action[len(SORT_PREFIX) :]
+            field = next((name for name, lbl in field_names.items() if lbl == label), None)
+            if field is None:
+                logger.debug("ignoring sort on unknown column %r", label)
+                continue
+            current = request.session.get(sort_key) or {}
+            if current.get("field") != field:
+                request.session[sort_key] = {"field": field, "desc": False}
+            elif not current.get("desc"):
+                request.session[sort_key] = {"field": field, "desc": True}
+            else:
+                request.session.pop(sort_key, None)
+
+    # back to page 1 on a clean url, so a refresh does not repeat the action
+    return redirect(index_path)
+
+
 def make_index_path(
     request: Any,
 ) -> str:
@@ -580,6 +697,11 @@ def generic_index(  # pylint:disable= R0914
             "fields",
         )
 
+    if model:
+        action_redirect = _handle_index_actions(request, index_path, field_names)
+        if action_redirect is not None:
+            return action_redirect
+
     post_data = _get_post_data(request)
     per_page = do_per_page(
         request,
@@ -606,15 +728,12 @@ def generic_index(  # pylint:disable= R0914
             request,
             field_names,
         )
-        #         # --- sort
-        #         if request.session.get('sort'):
-        #             sort_dict = request.session.get('sort')
-        #
-        #         for colName in names:
-        #             x = request.GET.get('sort')
-        #             if x:
-        #             sort_dict[colName] = "-"
-        #         request.session['sort'] = sort_dict
+        # --- sort: {"field": ..., "desc": bool}, set by the column header links
+        sort_dict = dict(request.session.get(_sort_session_key(index_path)) or {})
+        if sort_dict.get("field") in field_names:
+            sort_dict["label"] = field_names[sort_dict["field"]]
+        else:
+            sort_dict = {}
 
         # --- get data
         # get the current page of data we are about to prepare for display
@@ -730,11 +849,8 @@ def generic_form(
             **kwargs,
         )
 
-    if what == "sort":
-        return None
-
-    # not add, edit or delete, sort
-    logger.debug("not one of [add, edit, delete, sort]")
+    # not add, edit or delete
+    logger.debug("not one of [add, edit, delete]")
 
     return _do_render_form_data(
         request,

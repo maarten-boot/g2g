@@ -3,3 +3,6 @@
 pSwai/static/
 .claude/
 __pycache__/
+# database dumps (production data)
+docker/dump/*
+!docker/dump/.gitkeep

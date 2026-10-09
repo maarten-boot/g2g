@@ -3,18 +3,29 @@ name: g2g
 services:
   db:
     image: postgres:16-bookworm
+    # refuses to start after a failed dump restore (see docker/db-restore.sh)
+    entrypoint: ["/usr/local/bin/g2g-db-entrypoint.sh"]
+    command: ["postgres"] # an entrypoint override drops the image's default command
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-g2g}
       POSTGRES_USER: ${POSTGRES_USER:-g2g}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # on a NEW pgdata volume: restore the one dump in DB_DUMP_DIR (see docker/db-restore.sh);
+      # the web container then applies the pending migrations
+      - ./docker/db-entrypoint.sh:/usr/local/bin/g2g-db-entrypoint.sh:ro
+      - ./docker/db-restore.sh:/docker-entrypoint-initdb.d/10-db-restore.sh:ro
+      - ${DB_DUMP_DIR:-./docker/dump}:/dump:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-g2g} -d $${POSTGRES_DB:-g2g}"]
+      # over TCP: during the first init (and a restore) postgres only listens on its socket,
+      # so the web container waits until the restore is finished before it migrates
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER:-g2g} -d $${POSTGRES_DB:-g2g}"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 10m # a large restore; failures during the start period do not count
+      start_interval: 2s
     restart: unless-stopped
     # only expose to the host while you need psql from outside:
     # ports:

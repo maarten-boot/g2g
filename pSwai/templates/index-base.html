@@ -46,13 +46,14 @@
                   >Cs</a>
                 {% endif %}
               {% else %}
-                {# here we can add the sort 'no, desc, asc' behaviour #}
+                {# click: sort ascending, again: descending, again: no sorting #}
                 <a
                   type="button"
-                  class='btn btn-sm btn-outline-dark'
-                  href='{{action_clean}}?sort-{{columnName}}'
+                  class='btn btn-sm btn-outline-dark{% if sort.label == columnName %} active{% endif %}'
+                  title="sort on {{ columnName }} (ascending, descending, off)"
+                  href='{{action_clean}}?sort-{{ columnName|urlencode }}'
                 >
-                  {{columnName}}
+                  {{columnName}}{% if sort.label == columnName %}{% if sort.desc %} ▼{% else %} ▲{% endif %}{% endif %}
                 </a>
               {% endif %}
             </th>

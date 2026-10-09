@@ -5,14 +5,13 @@ The items from the former `TODO` file are listed under "Features".
 
 ## Before deploying to the real server
 
-- [ ] Back up the database. Migration `0013` drops the `aGit2Git_tag` table.
-- [ ] Run `migrate`. If `0012_check_data_for_constraints` stops, fix the rows it lists
-      (repo pairs with source == target, components that depend on themselves) and run it again.
+- [x] Back up the database. Migration `0013` drops the `aGit2Git_tag` table.
+- [x] Run `migrate` (done 2026-10-09 on production, 0012 found no problem rows).
 - [x] Set `LDAP_TLS_VERIFY=True` in `.env` (done 2026-10-09; login works with full certificate check,
       tested on a fresh stack with new volumes).
 - [x] Do one real LDAP login with a user account (done 2026-10-09; also works with the UPN or mail address).
-- [ ] Set `DJANGO_HTTPS=True` once the site is served over https. This turns on secure cookies
-      and the https redirect. Consider `DJANGO_SECURE_HSTS_SECONDS` after that.
+- [x] Set `DJANGO_HTTPS=True` (done 2026-10-09 on production).
+- [ ] Optional: `DJANGO_SECURE_HSTS_SECONDS` once https is known to stay (start small, e.g. 3600).
 - [ ] If the site is reached on an address nginx doesn't forward as-is, set `DJANGO_CSRF_TRUSTED_ORIGINS`.
 
 ## Secrets and configuration
@@ -27,18 +26,13 @@ The items from the former `TODO` file are listed under "Features".
       syntax, so those lines are ignored ("Invalid line" warnings).
 - [ ] `.env` logs to `syslog`. That works on the systemd host, but compose overrides it with
       `console` because the container has no `/dev/log`. Check that this is what you want.
-- [ ] `ENVIRONMENT` is a required setting but nothing reads it: use it or drop it.
+- [ ] `ENVIRONMENT` is required (production: `PROD`) but nothing reads it yet: use it or drop it.
 
 ## Behaviour to decide
 
-- [ ] **Boolean filters** (`internal`, `manual`, `needTag`, `requested`, `implemented`)
-      use `icontains`, so they don't work. Decide the input (e.g. `yes`/`no`, `1`/`0`)
-      and map it to an exact match in `_get_search_data_with_filter_applied`
-      (`pSwai/appAutoGui/genericViews.py`).
-- [ ] **Sorting**: the column header links (`?sort-<column>`) and the "Cs" (clear sorting)
-      button have no server-side code. The commented-out sort block in `generic_index` is the start.
-- [ ] **Clear filters**: the "Cf" button (`?clear-filters-all`) has no server-side code.
-      For now a filter is cleared by entering `*`.
+- [x] **Boolean filters**: exact match on yes/no, y/n, true/false, 1/0, on/off (done 2026-10-09).
+- [x] **Sorting**: header links sort one column asc/desc/off, "Cs" clears (done 2026-10-09).
+- [x] **Clear filters**: the "Cf" button clears the filters of the page (done 2026-10-09).
 - [ ] **Date format**: `DATETIME_FORMAT = "ymd-His"` was removed because Django ignores it.
       If you want that format, add a formats module (`FORMAT_MODULE_PATH`, e.g.
       `pSwai/pSwai/formats/en/formats.py`).

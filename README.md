@@ -37,8 +37,17 @@ column names, and the page size can be changed at the bottom (1–1000, remember
 Filter fields are defined per model in `autoGui.py`. Foreign key fields use `<fieldname>__name`
 to filter on the name of the related item.
 
-All filters are case-insensitive "contains" filters; enter `*` to clear a filter.
-This does not work for boolean fields yet (see [todo.md](todo.md)).
+Text filters are case-insensitive "contains" filters. Boolean columns match exactly on
+`yes`/`no` (also `y`/`n`, `true`/`false`, `1`/`0`, `on`/`off`, any case); another value leaves that
+column unfiltered. This also works for a boolean behind a foreign key (e.g. `server__internal`).
+Enter `*` to clear one filter; the `Cf` button clears all filters of the page.
+
+### sorting
+
+Click a column header to sort on it: ascending (▲), again descending (▼), again back to the default
+order (the model's `ordering`). One column at a time; the `Cs` button clears the sorting.
+Foreign key columns sort on the related name (the same lookup as their filter).
+Filters and sorting are remembered per index page in the session.
 
 ## Add/Edit/Delete
 
@@ -92,6 +101,36 @@ Set `HOST_CA_BUNDLE` when the host keeps its bundle elsewhere (e.g. `/etc/pki/tl
 
 After changing `.env`, recreate the container with `docker compose up -d`; `docker compose restart`
 does not re-read `.env`.
+
+After a code change (a `git pull`, or edits under `pSwai/`), rebuild: `docker compose up -d --build`.
+The django code and templates are copied into the `web` image at build time, so without `--build` the
+containers keep running the old code, even after `docker compose down -v`. Only `docker/nginx.conf` and
+the `docker/db-*.sh` scripts are mounted from the checkout and change without a rebuild. To check which
+code runs: `docker compose exec web grep -n <something new> /app/...`.
+
+### restoring a database dump
+
+To start the docker stack from a snapshot of the production database, put exactly one dump in
+`docker/dump/` (or the directory in `DB_DUMP_DIR`) and start with a new database volume:
+
+```sh
+pg_dump -Fc -d <db> -f docker/dump/g2g.dump    # on the production side; custom format is preferred
+docker compose down -v                         # removes the database volume!
+docker compose up -d
+```
+
+On a new volume the `db` container restores the dump (`docker/db-restore.sh`), and the `web` container
+then applies the migrations that are newer than the snapshot. With an existing volume nothing is restored.
+
+ - The file is named `*.dump`, `*.sql` or `*.sql.gz`; the format is recognised from the content.
+ - Custom format (`pg_dump -Fc`, preferred): owners and grants of the source are skipped on restore.
+ - Plain SQL (optionally gzipped) must be made with `pg_dump --clean --if-exists --no-owner --no-privileges`:
+   without `--if-exists` the `DROP` statements fail on the new database, and the owners must exist here.
+   A plain dump without these options is refused with a message that says which option is missing.
+ - The dump must come from `pg_dump` version 16 or older (the image runs postgres 16).
+ - A failed restore (bad dump, more than one dump) keeps the `db` container from starting, so `web` never
+   migrates an empty database. Fix the dump, then `docker compose down -v && docker compose up -d`.
+ - `docker/dump/` is ignored by git and docker builds: dumps contain production data.
 
 ## Local development
 
