@@ -11,7 +11,9 @@ What the app should do (including the planned copy runs and the open decisions) 
 
 ## Models
 
-Git2Git
+The project has two apps, each with its own menu section and URLs; both start from the git repos.
+
+`aGit2Git` (`/aGit2Git/...`): copying between git repos
  - `Server`: the git servers we know about.
  - `Repo`: one branch of a git remote, relates to a `Server`.
    Unique on `url` + `branch` (an empty branch counts as one value); the name is a free label.
@@ -19,8 +21,8 @@ Git2Git
  - `CopyType`: how do we copy: automatic or manual, do we need an explicit tag; relates to `Script`.
  - `Script`: a script we can use to copy between git repos, may relate to a `Repo`.
 
-Components
- - `Component`: a program or library having features and having its own repo (`mainRepo`).
+`aComponents` (`/aComponents/...`): the inventory of components and their features
+ - `Component`: a program or library having features and having its own repo (`mainRepo`, an `aGit2Git` `Repo`).
  - `Feature`: a feature on a component that is requested and/or implemented.
  - `Implementation`: what feature is requested/implemented on what component (unique per pair).
  - `Dependencies`: what component uses what other component (unique per pair, not itself).

@@ -51,6 +51,7 @@ The items from the former `TODO` file are listed under "Features".
 
 ## Features (from the former `TODO` file)
 
+- [ ] Collapsible left menu per app (`aGit2Git`, `aComponents`), open for the app you are working in.
 - [ ] Bulk actions: the selection checkboxes exist (`_D` column), but nothing acts on them.
 - [ ] Rework the models to add a namespace level: server → namespace → url (repo).
 - [ ] Validators for some models (external server, external url),

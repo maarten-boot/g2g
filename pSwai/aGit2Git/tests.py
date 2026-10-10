@@ -1,12 +1,13 @@
 import uuid
 
+from aComponents.models import Component, Dependencies
 from django.contrib.auth.models import Group, Permission, User
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import CaptureQueriesContext
 
-from aGit2Git.models import Component, Dependencies, Repo, RepoPair, Server
+from aGit2Git.models import Repo, RepoPair, Server
 
 SERVER_INDEX = "/aGit2Git/server/"
 
@@ -154,7 +155,7 @@ class SelfReferenceTests(LoggedInTestCase):
 
     def test_component_cannot_depend_on_itself(self):
         c = Component.objects.create(name="lib")
-        r = self.client.post("/aGit2Git/dependencies/add/", {"component": c.id, "uses": c.id, "_continue": "Save"})
+        r = self.client.post("/aComponents/dependencies/add/", {"component": c.id, "uses": c.id, "_continue": "Save"})
         self.assertContains(r, "A component cannot depend on itself.")
         self.assertFalse(Dependencies.objects.exists())
 
@@ -419,3 +420,13 @@ class PermissionTests(TestCase):
         self.server.refresh_from_db()
         self.assertEqual(self.server.name, "renamed")
         self.assertEqual(self.client.post(self.delete_url, {"delete": "1"}).status_code, 302)
+
+
+class AdminLinkTests(TestCase):
+    def test_admin_link_only_for_staff(self):
+        plain = User.objects.create_user("plain", password="not-used")
+        staff = User.objects.create_user("staffer", password="not-used", is_staff=True)
+        self.client.force_login(plain)
+        self.assertNotContains(self.client.get(SERVER_INDEX), 'href="/admin/"')
+        self.client.force_login(staff)
+        self.assertContains(self.client.get(SERVER_INDEX), 'href="/admin/"')

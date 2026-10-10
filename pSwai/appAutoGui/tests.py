@@ -8,7 +8,7 @@ from appAutoGui.xauto import _get_form_class, get_known_apps
 
 class AutoGuiTests(SimpleTestCase):
     def test_known_apps_are_the_apps_with_an_autogui(self):
-        self.assertEqual(get_known_apps(), ["aGit2Git"])
+        self.assertEqual(get_known_apps(), ["aGit2Git", "aComponents"])
 
     def test_form_is_generated_from_the_autogui_fields(self):
         form_class = _get_form_class(AUTO_GUI, "aGit2Git", "Repo")

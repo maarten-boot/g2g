@@ -37,4 +37,12 @@
             {% endfor %}
         {% endif %}
     {% endfor %}
+
+    {# the django admin (users, groups, permissions): only for staff #}
+    {% if request.user.is_staff %}
+        <hr>
+        <div class="nav">
+            <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+        </div>
+    {% endif %}
 </div>

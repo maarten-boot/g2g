@@ -62,6 +62,7 @@ if DJANGO_HTTPS:
 
 INSTALLED_APPS = [
     "aGit2Git",
+    "aComponents",
     "appAutoGui",
     "appLogin",
     "django.forms",

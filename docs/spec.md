@@ -12,8 +12,12 @@ logs those copies, so that nothing leaves (or enters) the company unnoticed.
 
 A second, separate part tracks components, their features and their dependencies.
 
-❓ Is the component/feature part meant to stay in g2g, or is it a separate tool that happens to live here?
-   Does it ever drive which repos get copied (e.g. a feature that is "implemented" triggers a release copy)?
+The component/feature part is its own django app (`aComponents`), next to the copy administration
+(`aGit2Git`); both start from the git repos (`Component.mainRepo` is an `aGit2Git` `Repo`). Each app has its
+own menu section; planned: a collapsible left menu per app.
+
+❓ Does the component part ever drive which repos get copied (e.g. a feature that is "implemented" triggers a
+   release copy)?
 
 ## 2. Concepts
 
@@ -137,4 +141,5 @@ Record decisions here as the ❓ items are answered (date, decision, by whom).
 | 2026-10-09 | a repo is unique on url + branch; an empty branch counts as one value |
 | 2026-10-09 | the unused `Tag` model is removed |
 | 2026-10-09 | all app pages require login; LDAP server certificates are verified |
+| 2026-10-10 | components/features moved to their own app `aComponents` (migrations keep the data) |
 | 2026-10-10 | everyone logged in may view; add/change/delete per django permission; `LDAP_ADMIN` members are superusers; AD groups no longer mirrored |

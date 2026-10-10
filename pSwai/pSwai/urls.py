@@ -30,6 +30,7 @@ urlpatterns = [
     path("", views.index, name="home"),
     path("", include("appLogin.urls")),
     path("", include("aGit2Git.urls")),
+    path("", include("aComponents.urls")),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
