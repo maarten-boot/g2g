@@ -70,3 +70,8 @@ requirements: requirements.in
 
 restart:
 	[ -f /etc/systemd/system/gunicorn003.service ] && sudo systemctl restart gunicorn003
+
+docker_test:
+	cp pSwai/.env .
+	docker compose down -v
+	docker compose up -d --build

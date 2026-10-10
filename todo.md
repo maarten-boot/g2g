@@ -16,14 +16,13 @@ The items from the former `TODO` file are listed under "Features".
 
 ## Secrets and configuration
 
-- [ ] `.env.example` is identical to `.env` and holds real values (Postgres password,
-      Django secret key, LDAP bind password). Replace them with placeholders and rotate
-      the secrets if the file was ever shared. Then change `.gitignore` from `.env*` to
-      `.env` + `!.env.example` so the example can be committed.
-- [ ] Two different `.env` files exist: local `manage.py` runs read `pSwai/.env`
-      (found first by `find_dotenv()`), compose reads the root `.env`. Keep one.
-- [ ] The root `.env` contains an `if DJANGO_DEBUG:` block. That isn't valid dotenv
-      syntax, so those lines are ignored ("Invalid line" warnings).
+- [x] `.env.example` holds dummy values only; no `.env` file was ever committed (checked 2026-10-09).
+- [ ] Optional: commit `.env.example` as the template for new setups (change `.gitignore` from `.env*`
+      to `.env` + `!.env.example`). Check its content first: it gets published with the repo.
+- [ ] Two `.env` files hold real secrets: `pSwai/.env` (read by local `manage.py` runs and the systemd
+      deployment, found first by `find_dotenv()`) and the root `.env` (read by docker compose).
+      Keeping them in sync is manual; consider one file, or compose `env_file: pSwai/.env`.
+- [x] The `if DJANGO_DEBUG:` block (not valid dotenv syntax) is gone from the `.env` files (2026-10-09).
 - [ ] `.env` logs to `syslog`. That works on the systemd host, but compose overrides it with
       `console` because the container has no `/dev/log`. Check that this is what you want.
 - [ ] `ENVIRONMENT` is required (production: `PROD`) but nothing reads it yet: use it or drop it.
@@ -33,13 +32,12 @@ The items from the former `TODO` file are listed under "Features".
 - [x] **Boolean filters**: exact match on yes/no, y/n, true/false, 1/0, on/off (done 2026-10-09).
 - [x] **Sorting**: header links sort one column asc/desc/off, "Cs" clears (done 2026-10-09).
 - [x] **Clear filters**: the "Cf" button clears the filters of the page (done 2026-10-09).
-- [ ] **Date format**: `DATETIME_FORMAT = "ymd-His"` was removed because Django ignores it.
-      If you want that format, add a formats module (`FORMAT_MODULE_PATH`, e.g.
-      `pSwai/pSwai/formats/en/formats.py`).
+- [x] **Date format**: `ymd-His` (e.g. 261010-093015) via `pSwai/pSwai/formats/en/formats.py`
+      and `FORMAT_MODULE_PATH` (done 2026-10-10).
 - [ ] **Login permissions**: any logged-in user can add, edit and delete everything.
       Decide whether to require staff status or per-model permissions.
-- [ ] **Two login paths**: `/login/` (`appLogin`) and a POST to `/` (`appAutoGui.views.index`)
-      both log users in, with different session lifetimes. Keep one.
+- [x] **Two login paths**: only `/login/` logs users in; the session ends when the browser
+      closes (done 2026-10-09).
 
 ## Features (from the former `TODO` file)
 
@@ -51,8 +49,8 @@ The items from the former `TODO` file are listed under "Features".
 
 ## Cleanup
 
-- [ ] `DJANGO_LOGGERS_HANDLERS_APP` builds a logger for every installed app, including the
-      `django.*` ones, which already go through the `django` logger. Limit it to the project apps.
+- [x] `DJANGO_LOGGERS_HANDLERS_APP` only builds loggers for the project apps; the `django.*` apps
+      log through the `django` logger (done 2026-10-09).
 - [ ] Clock skew on the NFS share makes `make` warn and rebuild more often than needed.
 
 ## Larger refactor (optional)

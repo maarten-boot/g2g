@@ -1,19 +1,6 @@
-import logging
-
-from django.contrib.auth import (
-    authenticate,
-    login,
-)
-from django.shortcuts import redirect
-
-from appAutoGui import forms
 from appAutoGui.genericViews import (
     generic_index,
 )
-
-logger = logging.getLogger(__name__)
-
-TWO_WEEKS_IN_SECONDS = 60 * 60 * 24 * 7 * 2
 
 
 def index(
@@ -21,29 +8,7 @@ def index(
     *args,
     **kwargs,
 ):
-    """force mandatory login before you can access the index (search) page"""
-    if request.method == "POST" and request.user.is_authenticated is False:
-        xform = forms.LoginForm(request.POST)
-        if xform.is_valid():
-            remember_me = False
-            username = xform.cleaned_data["loginName"]
-            password = xform.cleaned_data["loginPassword"]
-            # remember_me = xform.cleaned_data["loginCheck"]
-
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
-                if not remember_me:
-                    request.session.set_expiry(0)
-                else:
-                    request.session.set_expiry(TWO_WEEKS_IN_SECONDS)
-            else:
-                logger.info("login failed for user %s", username)
-        else:
-            logger.info("login form not valid")
-
-        return redirect("home")
-
+    """the home page; logging in is done by appLogin (/login/)"""
     app_name = __package__
     return generic_index(
         autogui_dict={},

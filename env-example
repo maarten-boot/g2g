@@ -1,0 +1,42 @@
+# Copy to .env next to compose.yaml. Never commit the real one.
+# Every variable below without a "(optional)" note is read by settings.py
+# with no default, so a missing one is a hard startup failure.
+
+# --- postgres container -----------------------------------------------------
+POSTGRES_DB=db_name
+POSTGRES_USER=user_name
+POSTGRES_PASSWORD=change_the_pass
+
+# --- django core ------------------------------------------------------------
+ENVIRONMENT=development
+DJANGO_SECRET_KEY=change-me-50-random-chars
+DJANGO_DEBUG=false
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+
+# host is the compose service name, credentials must match POSTGRES_* above
+DJANGO_DATABASE_URL=postgres://user_name:change_me_pass@db:5432/db_name
+
+# --- logging ----------------------------------------------------------------
+# DJANGO_LOGGERS_HANDLERS_APP has NO default in settings.py, it is required.
+# In a container use "console" only; "syslog" needs /dev/log and "file"
+# writes to /tmp inside the container where nobody will look at it.
+DJANGO_LOGGERS_HANDLERS_APP=console
+DJANGO_LOGGERS_HANDLERS=console
+DJANGO_LOGGERS_HANDLERS_ROOT=console
+DJANGO_LOG_LEVEL=WARNING
+DJANGO_LOG_LEVEL_MAIL=ERROR
+
+# --- LDAP -------------------------------------------------------------------
+LDAP_URL1=ldap://dc1.example.internal
+LDAP_URL2=ldap://dc2.example.internal
+LDAP_BASE=DC=example,DC=internal
+LDAP_BIND_DN=CN=svc-g2g,OU=Service,DC=example,DC=internal
+LDAP_BIND_PW=change-me
+LDAP_STAFF=CN=g2g-staff,OU=Groups,DC=example,DC=internal
+LDAP_ACTIVE=CN=g2g-users,OU=Groups,DC=example,DC=internal
+
+# --- i18n (optional, defaults shown) ----------------------------------------
+DJANGO_LANGUAGE_CODE=en-us
+DJANGO_TIME_ZONE=UTC
+DJANGO_USE_I18N=true
+DJANGO_USE_TZ=true

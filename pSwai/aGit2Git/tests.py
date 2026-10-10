@@ -333,3 +333,12 @@ class SortAndClearTests(LoggedInTestCase):
 
     def test_old_sort_route_is_gone(self):
         self.assertEqual(self.client.get(f"{SERVER_INDEX}sort/Name").status_code, 404)
+
+
+class AdminDateFormatTests(TestCase):
+    def test_admin_list_shows_ymd_his(self):
+        admin = User.objects.create_superuser("admin", password="not-used")
+        self.client.force_login(admin)
+        _server("dated")
+        r = self.client.get("/admin/aGit2Git/server/")
+        self.assertRegex(r.content.decode(), r">\d{6}-\d{6}<")

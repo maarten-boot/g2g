@@ -37,6 +37,7 @@ ALLOWED_HOSTS = tuple(env.list("DJANGO_ALLOWED_HOSTS", default=[]))
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
 SESSION_COOKIE_HTTPONLY = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # log in again after closing the browser
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
@@ -216,6 +217,10 @@ TIME_ZONE = env.str("DJANGO_TIME_ZONE", default="UTC")
 USE_I18N = env.bool("DJANGO_USE_I18N", default=True)
 USE_TZ = env.bool("DJANGO_USE_TZ", default=True)
 
+# date/time display formats per language: pSwai/formats/<lang>/formats.py (en: "ymd-His", e.g. 261010-093015).
+# A plain DATETIME_FORMAT setting is ignored while USE_I18N is on, the locale formats win.
+FORMAT_MODULE_PATH = ["pSwai.formats"]
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -292,8 +297,11 @@ LOGGING: dict = {
 }
 
 
+# a logger per project app; the django.* apps log through the "django" logger above
 MY_LOGGERS: dict = {}
 for app in INSTALLED_APPS:
+    if app.startswith("django."):
+        continue
     MY_LOGGERS[str(app)] = {
         "handlers": env.list("DJANGO_LOGGERS_HANDLERS_APP"),
         "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),

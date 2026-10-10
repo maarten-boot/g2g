@@ -29,6 +29,15 @@ class LoginTests(TestCase):
         r = self._login("https://evil.example/")
         self.assertRedirects(r, "/", fetch_redirect_response=False)
 
+    def test_session_ends_when_the_browser_closes(self):
+        self._login("/")
+        self.assertTrue(self.client.session.get_expire_at_browser_close())
+
+    def test_post_to_home_does_not_log_in(self):
+        # the old second login path (a POST to /) is gone; only /login/ logs users in
+        self.client.post("/", {"loginName": "tester", "loginPassword": PASSWORD})
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_wrong_password_stays_on_login_page(self):
         with self.assertLogs("appLogin.views", level="WARNING") as logs:
             r = self.client.post("/login/", {"username": "tester", "password": "wrong"})
