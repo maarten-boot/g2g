@@ -6,8 +6,7 @@ services:
     # refuses to start after a failed dump restore (see docker/db-restore.sh)
     entrypoint: ["/usr/local/bin/g2g-db-entrypoint.sh"]
     command: ["postgres"] # an entrypoint override drops the image's default command
-    env_file:
-      - .env
+    # no env_file: postgres only needs POSTGRES_* (filled in from .env by compose), not the app secrets
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-g2g}
       POSTGRES_USER: ${POSTGRES_USER:-g2g}

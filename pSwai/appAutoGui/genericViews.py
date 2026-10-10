@@ -3,7 +3,7 @@ from typing import (
     Any,
 )
 
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied
 from django.core.paginator import Paginator
 from django.db import models
 from django.shortcuts import (
@@ -24,6 +24,23 @@ from appAutoGui.xauto import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _perm(model: Any, action: str) -> str:
+    """the django permission for an action (view, add, change, delete) on a model"""
+    return f"{model._meta.app_label}.{action}_{model._meta.model_name}"
+
+
+def _model_permissions(request: Any, model: Any) -> dict[str, bool]:
+    """what the user may do with this model; viewing only needs a login (see docs/spec.md)"""
+    if model is None:
+        return {"can_add": False, "can_change": False, "can_delete": False}
+    user = request.user
+    return {
+        "can_add": user.has_perm(_perm(model, "add")),
+        "can_change": user.has_perm(_perm(model, "change")),
+        "can_delete": user.has_perm(_perm(model, "delete")),
+    }
 
 
 def _get_filter_hint(
@@ -74,17 +91,13 @@ def _lookup_field(model: Any, path: str) -> Any:
     return field
 
 
-def _get_search_data_with_filter_applied(  # pylint:disable=R0917,disable=R0913
-    index_path: str,
+def _get_search_data_with_filter_applied(
     autogui_dict: dict[str, Any],
     model: Any,
-    post_data: Any,
     filter_dict: dict[str, Any],
     sort_dict: dict[str, Any],
 ):
-    """ """
-    _ = index_path
-    _ = post_data
+    """the model's rows with the filters and the sort of the index page applied"""
 
     prefix = get_filter_prefix()
     filters: dict[str, Any] = {}
@@ -321,11 +334,15 @@ def _do_render_form_data(  # pylint:disable=R0917,disable=R0913
     my_form,
     xid,
     what,
+    model=None,
 ):
     path = _split_path(full_path)
 
     deleting = True if what == "delete" else False
     updating = True if what == "edit" else False
+    permissions = _model_permissions(request, model)
+    # without the change permission the edit page only shows the item
+    readonly = deleting or (updating and not permissions["can_change"])
 
     x_del = "/".join(["", path[0], path[1], "delete", str(xid)]) if xid else None
 
@@ -336,7 +353,8 @@ def _do_render_form_data(  # pylint:disable=R0917,disable=R0913
         "delete": x_del,
         "deleting": deleting,
         "updating": updating,
-    }
+        "readonly": readonly,
+    } | permissions
 
     context = c1 | c2  # merge the dicts
 
@@ -397,6 +415,7 @@ def _do_add_item(  # pylint:disable=R0917,disable=R0913
         my_form,
         xid,
         what,
+        model,
     )
 
 
@@ -446,6 +465,7 @@ def _do_edit_item(  # pylint:disable=R0917,disable=R0913
         my_form,
         xid,
         what,
+        model,
     )
 
 
@@ -482,6 +502,7 @@ def _do_delete_item(  # pylint:disable=R0917,disable=R0913
         my_form,
         xid,
         what,
+        model,
     )
 
 
@@ -500,10 +521,6 @@ def get_model_data(
         model_data = get_object_or_404(model, pk=xid)
         logger.debug("model_data: %s", model_data)
     return model_data
-
-
-def do_paging_with_search_filters():
-    pass
 
 
 def do_per_page(
@@ -582,18 +599,14 @@ def get_filter_dict_info(
 def _get_current_page_data(  # pylint:disable=R0917,disable=R0913
     page_number: int,
     per_page: int,
-    index_path: str,
     autogui_dict: dict[str, Any],
     model: Any,
-    post_data: Any,
     filter_dict: dict[str, Any],
     sort_dict: dict[str, Any],
 ) -> Any:
     item_list = _get_search_data_with_filter_applied(
-        index_path=index_path,
         autogui_dict=autogui_dict,
         model=model,
-        post_data=post_data,
         filter_dict=filter_dict,
         sort_dict=sort_dict,
     )
@@ -740,10 +753,8 @@ def generic_index(  # pylint:disable= R0914
         page_obj = _get_current_page_data(
             page_number=page_number,
             per_page=per_page,
-            index_path=index_path,
             autogui_dict=autogui_dict,
             model=model,
-            post_data=post_data,
             filter_dict=filter_dict,
             sort_dict=sort_dict,
         )
@@ -770,7 +781,7 @@ def generic_index(  # pylint:disable= R0914
         "postData": post_data,
         "filter": filter_dict,
         "sort": sort_dict,
-    }
+    } | _model_permissions(request, model)
     context = c1 | c2  # merge the dicts
 
     return render(
@@ -781,6 +792,23 @@ def generic_index(  # pylint:disable= R0914
 
 
 # @login_required
+def _check_form_permission(request: Any, model: Any, what: str | None) -> None:
+    """add and delete need their permission (also to show the page); an edit page can be shown
+    read only, saving it needs the change permission"""
+    if model is None:
+        return
+    needed = None
+    if what == "add":
+        needed = "add"
+    elif what == "delete":
+        needed = "delete"
+    elif what == "edit" and request.method == "POST":
+        needed = "change"
+    if needed and not request.user.has_perm(_perm(model, needed)):
+        logger.warning("%s denied for %s on %s", needed, request.user, model.__name__)
+        raise PermissionDenied
+
+
 def generic_form(
     autogui_dict,
     app_name,
@@ -798,6 +826,8 @@ def generic_form(
         *args,
         **kwargs,
     )
+
+    _check_form_permission(request, model, what)
 
     if what == "add":
         # we see add as get and as post
@@ -860,4 +890,5 @@ def generic_form(
         my_form,
         xid,
         what,
+        model,
     )

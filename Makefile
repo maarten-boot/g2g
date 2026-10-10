@@ -22,7 +22,7 @@ MYPY = $(VENV)/bin/mypy
 # the image the Dockerfile builds on; requirements.txt is resolved in it
 PY_IMAGE = python:3.14-slim-bookworm
 
-.PHONY: all prep clean restart mypy ruff check test requirements
+.PHONY: all prep clean restart mypy ruff check test requirements docker_test
 
 all: clean venv prep
 
@@ -71,6 +71,8 @@ requirements: requirements.in
 restart:
 	[ -f /etc/systemd/system/gunicorn003.service ] && sudo systemctl restart gunicorn003
 
+# fresh docker stack: copy the one real .env (pSwai/.env) next to compose.yaml, drop the volumes
+# (the database is restored again from docker/dump) and rebuild the web image
 docker_test:
 	cp pSwai/.env .
 	docker compose down -v

@@ -86,9 +86,14 @@ app's `forms.py`.
 ## Running with docker
 
 ```sh
-cp .env.example .env    # then fill in the values, see below
-docker compose up -d --build
+cp env-example pSwai/.env    # first time only: fill in the values, see Configuration
+make docker_test             # copies pSwai/.env to .env, drops the volumes, rebuilds and starts
 ```
+
+`pSwai/.env` is the one real settings file (local runs, systemd and docker). docker compose reads `.env`
+next to `compose.yaml`, a copy of it: after changing `pSwai/.env`, copy it again (`cp pSwai/.env .`).
+`make docker_test` starts from a new database volume, restored from `docker/dump` (see below);
+`docker compose up -d --build` keeps the current database.
 
  - `db`: postgres 16 (data in the `pgdata` volume).
  - `web`: gunicorn on python 3.14. On start, `docker/entrypoint.sh` runs `migrate` and `collectstatic`
@@ -103,8 +108,8 @@ so the internal CAs (e.g. the one that signed the AD certificates) are trusted i
 `LDAP_CA_CERT_FILE=/etc/ssl/certs/ca-certificates.crt` works the same on the host and in docker.
 Set `HOST_CA_BUNDLE` when the host keeps its bundle elsewhere (e.g. `/etc/pki/tls/certs/ca-bundle.crt`).
 
-After changing `.env`, recreate the container with `docker compose up -d`; `docker compose restart`
-does not re-read `.env`.
+After changing `pSwai/.env`, copy it (`cp pSwai/.env .`) and recreate the containers with
+`docker compose up -d`; `docker compose restart` does not re-read `.env`.
 
 After a code change (a `git pull`, or edits under `pSwai/`), rebuild: `docker compose up -d --build`.
 The django code and templates are copied into the `web` image at build time, so without `--build` the
@@ -147,8 +152,8 @@ make check    # ruff format --check, ruff check and mypy; fails on any problem
 make test     # django tests in the web container against the compose postgres
 ```
 
-Locally, the settings read the nearest `.env` above `pSwai/pSwai/settings.py`; values already
-in the environment win.
+Locally, the settings read `pSwai/.env` (the nearest `.env` above `pSwai/pSwai/settings.py`); values
+already in the environment win.
 
 Migrations are made during development (`./manage.py makemigrations`) and committed.
 `prep.sh` only applies them, and stops when the models have changes without a migration.
@@ -163,7 +168,7 @@ Migrations are made during development (`./manage.py makemigrations`) and commit
 
 ## Configuration
 
-All settings come from the environment, or from a `.env` file.
+All settings come from the environment, or from `pSwai/.env`; `env-example` is the template.
 
 Required:
 
@@ -171,7 +176,6 @@ Required:
 |---|---|
 | `DJANGO_SECRET_KEY` | django secret key |
 | `DJANGO_DATABASE_URL` | e.g. `psql://user:password@localhost:5432/g2g` (set by compose in docker) |
-| `ENVIRONMENT` | prod/dev (not used yet) |
 | `DJANGO_LOGGERS_HANDLERS_APP` | log handlers for the apps, e.g. `console` or `console,syslog` |
 | `LDAP_URL1`, `LDAP_URL2` | the LDAP / AD servers |
 | `LDAP_BASE`, `LDAP_BIND_DN`, `LDAP_BIND_PW` | search base and bind account |
@@ -188,12 +192,12 @@ Optional:
 | `DJANGO_HTTPS` | `False` | set when served over https: secure cookies, proxy ssl header, https redirect |
 | `DJANGO_SECURE_SSL_REDIRECT` | `True` | only with `DJANGO_HTTPS` |
 | `DJANGO_SECURE_HSTS_SECONDS` | `0` | only with `DJANGO_HTTPS`; read the django docs before enabling |
+| `LDAP_ADMIN` | empty | AD group whose members are superusers (all rights); empty: only local superusers |
 | `LDAP_CA_CERT_FILE` | empty | CA bundle (PEM) that includes the CA that signed the AD certificate; empty uses the system trust store. In docker the host bundle is mounted on `/etc/ssl/certs/ca-certificates.crt` |
 | `HOST_CA_BUNDLE` | `/etc/ssl/certs/ca-certificates.crt` | docker compose only: the host's CA bundle to mount into the web container |
 | `LDAP_TLS_VERIFY` | `True` | `False` only for local testing |
 | `LDAP_LOG_LEVEL` | `WARNING` | `DEBUG` only while troubleshooting |
 | `DJANGO_LOG_LEVEL` | `WARNING` | |
-| `DJANGO_LOG_LEVEL_MAIL` | `ERROR` | |
 | `DJANGO_LOGGERS_HANDLERS`, `DJANGO_LOGGERS_HANDLERS_ROOT` | empty | handlers for the `django` and root loggers |
 | `DJANGO_LANGUAGE_CODE`, `DJANGO_TIME_ZONE`, `DJANGO_USE_I18N`, `DJANGO_USE_TZ` | `en-us`, `UTC`, `True`, `True` | |
 
@@ -213,3 +217,16 @@ A failed login shows an error on the login page and logs `login failed for <user
 failed (user not found, password rejected, group lookup), set `LDAP_LOG_LEVEL=DEBUG` in `.env`,
 run `docker compose up -d`, try again and check `docker compose logs web`. Set it back afterwards:
 DEBUG logs the search filters and DNs.
+
+## Permissions
+
+ - Every logged-in user may view all lists and items (an edit page without the change right is read only).
+ - Adding, changing and deleting need the django permission for that model (`add_server`, `change_repo`, ...).
+   Without it the page answers 403, and the New / Save / Delete links are not shown.
+ - Members of the AD group in `LDAP_ADMIN` become superusers at login (and lose it when they leave the group):
+   all rights, and the admin site (`/admin/`).
+ - Give other users rights with django groups in the admin: create a group (e.g. "g2g editors"), give it the
+   permissions, and add the users. A django group named exactly like an AD group gives its permissions to all
+   members of that AD group, without adding anyone (`AUTH_LDAP_FIND_GROUP_PERMS`).
+ - AD groups are not mirrored into django groups (`AUTH_LDAP_MIRROR_GROUPS = False`): mirroring would reset a
+   user's groups to their AD groups at every login and remove them from the local groups.

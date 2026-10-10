@@ -1,6 +1,6 @@
 import uuid
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, Permission, User
 from django.db import IntegrityError, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
@@ -16,8 +16,10 @@ def _server(name: str) -> Server:
 
 
 class LoggedInTestCase(TestCase):
+    """logged in with all rights; PermissionTests covers the users with fewer rights"""
+
     def setUp(self):
-        self.user = User.objects.create_user("tester", password="not-used")
+        self.user = User.objects.create_superuser("tester", password="not-used")
         self.client.force_login(self.user)
 
 
@@ -342,3 +344,78 @@ class AdminDateFormatTests(TestCase):
         _server("dated")
         r = self.client.get("/admin/aGit2Git/server/")
         self.assertRegex(r.content.decode(), r">\d{6}-\d{6}<")
+
+
+class PermissionTests(TestCase):
+    """every logged-in user may view; add/change/delete need the django permission (or superuser)"""
+
+    def setUp(self):
+        self.server = _server("existing")
+        self.edit_url = f"{SERVER_INDEX}edit/{self.server.id}"
+        self.delete_url = f"{SERVER_INDEX}delete/{self.server.id}"
+
+    def _login(self, *perms: str, superuser: bool = False) -> User:
+        if superuser:
+            user = User.objects.create_superuser("boss", password="not-used")
+        else:
+            user = User.objects.create_user("someone", password="not-used")
+        if perms:
+            group = Group.objects.create(name="g2g editors")  # a local group, as made in the admin
+            group.permissions.set(Permission.objects.filter(codename__in=perms))
+            user.groups.add(group)
+        self.client.force_login(user)
+        return user
+
+    def _add(self):
+        return self.client.post(f"{SERVER_INDEX}add/", {"name": "new", "url": "https://new.invalid/", "_continue": "1"})
+
+    def _change(self):
+        return self.client.post(self.edit_url, {"name": "renamed", "url": self.server.url, "_continue": "1"})
+
+    def test_plain_user_can_view(self):
+        self._login()
+        r = self.client.get(SERVER_INDEX)
+        self.assertContains(r, ">existing<")
+        self.assertNotContains(r, f'href="{SERVER_INDEX}add/"')  # no New link
+        r = self.client.get(self.edit_url)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Read only")
+        self.assertNotContains(r, 'value="Save"')
+
+    def test_plain_user_cannot_change_anything(self):
+        self._login()
+        self.assertEqual(self._add().status_code, 403)
+        self.assertEqual(self.client.get(f"{SERVER_INDEX}add/").status_code, 403)
+        self.assertEqual(self._change().status_code, 403)
+        self.assertEqual(self.client.get(self.delete_url).status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url, {"delete": "1"}).status_code, 403)
+        self.server.refresh_from_db()
+        self.assertEqual(self.server.name, "existing")
+        self.assertEqual(Server.objects.count(), 1)
+
+    def test_group_permissions_are_per_action(self):
+        self._login("change_server")  # may change, not add or delete
+        self.assertEqual(self._change().status_code, 200)  # saved; "Save" shows the form again
+        self.server.refresh_from_db()
+        self.assertEqual(self.server.name, "renamed")
+        r = self.client.get(self.edit_url)
+        self.assertContains(r, 'value="Save"')
+        self.assertNotContains(r, "Save and add another")
+        self.assertNotContains(r, self.delete_url)
+        self.assertEqual(self._add().status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url, {"delete": "1"}).status_code, 403)
+
+    def test_group_with_all_permissions(self):
+        self._login("add_server", "change_server", "delete_server")
+        self.assertContains(self.client.get(SERVER_INDEX), f'href="{SERVER_INDEX}add/"')
+        self.assertEqual(self._add().status_code, 302)
+        self.assertEqual(self.client.post(self.delete_url, {"delete": "1"}).status_code, 302)
+        self.assertFalse(Server.objects.filter(id=self.server.id).exists())
+
+    def test_superuser_may_do_everything(self):
+        self._login(superuser=True)
+        self.assertEqual(self._add().status_code, 302)
+        self.assertEqual(self._change().status_code, 200)  # saved; "Save" shows the form again
+        self.server.refresh_from_db()
+        self.assertEqual(self.server.name, "renamed")
+        self.assertEqual(self.client.post(self.delete_url, {"delete": "1"}).status_code, 302)

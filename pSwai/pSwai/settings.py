@@ -3,6 +3,7 @@ Django settings for pSwai project.
 """
 
 import os
+import sys
 from pathlib import Path
 
 import environ
@@ -10,6 +11,7 @@ import ldap
 from django.forms.renderers import TemplatesSetting
 from django_auth_ldap.config import (
     ActiveDirectoryGroupType,
+    LDAPGroupQuery,
     LDAPSearch,
 )
 from dotenv import find_dotenv
@@ -26,7 +28,6 @@ if env_file:
 # ------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-ENVIRONMENT = env.str("ENVIRONMENT")  # switch between prod and dev
 SECRET_KEY = env.str("DJANGO_SECRET_KEY")
 DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = tuple(env.list("DJANGO_ALLOWED_HOSTS", default=[]))
@@ -170,10 +171,18 @@ AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
 
 AUTH_LDAP_GROUP_TYPE = ActiveDirectoryGroupType()
 
+# rights: every active user may view; members of LDAP_ADMIN (optional) are superusers with all rights;
+# other users get add/change/delete rights through django groups (local groups, managed in the admin,
+# or a django group named exactly like an AD group: AUTH_LDAP_FIND_GROUP_PERMS)
+LDAP_ADMIN = env.str("LDAP_ADMIN", default="")
 AUTH_LDAP_USER_FLAGS_BY_GROUP = {
-    "is_staff": env.str("LDAP_STAFF"),
     "is_active": env.str("LDAP_ACTIVE"),
+    "is_staff": env.str("LDAP_STAFF"),
 }
+if LDAP_ADMIN:
+    # admins also get the admin site, where they manage the local groups
+    AUTH_LDAP_USER_FLAGS_BY_GROUP["is_staff"] = LDAPGroupQuery(env.str("LDAP_STAFF")) | LDAPGroupQuery(LDAP_ADMIN)
+    AUTH_LDAP_USER_FLAGS_BY_GROUP["is_superuser"] = LDAP_ADMIN
 
 AUTH_LDAP_USER_ATTR_MAP = {
     "username": "sAMAccountName",
@@ -187,7 +196,9 @@ AUTH_LDAP_ALWAYS_UPDATE_USER = True
 AUTH_LDAP_FIND_GROUP_PERMS = True
 AUTH_LDAP_CACHE_GROUPS = True
 AUTH_LDAP_CACHE_TIMEOUT = 60 * 20  # 20 minutes
-AUTH_LDAP_MIRROR_GROUPS = True
+# not mirrored: mirroring would reset a user's django groups to exactly the AD groups at every login,
+# and remove them from the local groups
+AUTH_LDAP_MIRROR_GROUPS = False
 
 AUTHENTICATION_BACKENDS = [
     # django_auth_ldap, also accepting DOMAIN\user, the UPN and the mail address as login name
@@ -251,12 +262,6 @@ LOGGING: dict = {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
-        "file": {
-            "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),
-            "class": "logging.FileHandler",
-            "formatter": "verbose",
-            "filename": "/tmp/django.log",
-        },
         "syslog": {
             "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),
             "class": "logging.handlers.SysLogHandler",
@@ -264,26 +269,18 @@ LOGGING: dict = {
             "facility": "local7",
             "address": "/dev/log",
         },
-        "mail_admins": {
-            "level": env.str("DJANGO_LOG_LEVEL_MAIL", default="ERROR"),
-            "class": "django.utils.log.AdminEmailHandler",
-            "include_html": True,
-        },
         "stream_to_console": {
             "level": "DEBUG",
             "class": "logging.StreamHandler",
         },
     },
     "root": {
-        "handlers": env.list(
-            "DJANGO_LOGGERS_HANDLERS_ROOT",
-            default=[],
-        ),
+        "handlers": [],  # set below from DJANGO_LOGGERS_HANDLERS_ROOT
         "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),
     },
     "loggers": {
         "django": {
-            "handlers": env.list("DJANGO_LOGGERS_HANDLERS", default=[]),
+            "handlers": [],  # set below from DJANGO_LOGGERS_HANDLERS
             "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),
             "propagate": False,
         },
@@ -297,13 +294,27 @@ LOGGING: dict = {
 }
 
 
+def _log_handlers(var: str, default: list[str] | None = None) -> list[str]:
+    """the handler names in an env var, without names that are not defined above (e.g. "mail_admins"
+    or "file" from an older .env): logging would refuse to start on those"""
+    names = env.list(var) if default is None else env.list(var, default=default)
+    unknown = [n for n in names if n not in LOGGING["handlers"]]
+    if unknown:
+        print(f"settings: {var}: ignoring unknown log handlers {unknown}", file=sys.stderr)
+    return [n for n in names if n in LOGGING["handlers"]]
+
+
+LOGGING["root"]["handlers"] = _log_handlers("DJANGO_LOGGERS_HANDLERS_ROOT", default=[])
+LOGGING["loggers"]["django"]["handlers"] = _log_handlers("DJANGO_LOGGERS_HANDLERS", default=[])
+
 # a logger per project app; the django.* apps log through the "django" logger above
+_app_handlers = _log_handlers("DJANGO_LOGGERS_HANDLERS_APP")
 MY_LOGGERS: dict = {}
 for app in INSTALLED_APPS:
     if app.startswith("django."):
         continue
     MY_LOGGERS[str(app)] = {
-        "handlers": env.list("DJANGO_LOGGERS_HANDLERS_APP"),
+        "handlers": list(_app_handlers),
         "level": env.str("DJANGO_LOG_LEVEL", default="WARNING"),
         "propagate": False,  # has its own handlers; via root every line would be logged twice
     }
@@ -318,5 +329,3 @@ class CustomFormRenderer(TemplatesSetting):
 FORM_RENDERER = "pSwai.settings.CustomFormRenderer"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "home"
-LOGOUT_REDIRECT_URL = "home"

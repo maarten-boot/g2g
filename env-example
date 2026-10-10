@@ -1,4 +1,6 @@
-# Copy to .env next to compose.yaml. Never commit the real one.
+# Template for pSwai/.env, the one real settings file (local runs, systemd and docker).
+# Copy it to pSwai/.env and fill in the values; never commit that file.
+# docker compose reads .env next to compose.yaml: `make docker_test` copies pSwai/.env there.
 # Every variable below without a "(optional)" note is read by settings.py
 # with no default, so a missing one is a hard startup failure.
 
@@ -8,23 +10,33 @@ POSTGRES_USER=user_name
 POSTGRES_PASSWORD=change_the_pass
 
 # --- django core ------------------------------------------------------------
-ENVIRONMENT=development
 DJANGO_SECRET_KEY=change-me-50-random-chars
 DJANGO_DEBUG=false
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
-# host is the compose service name, credentials must match POSTGRES_* above
-DJANGO_DATABASE_URL=postgres://user_name:change_me_pass@db:5432/db_name
+# local runs: host localhost; in docker compose overrides this with host "db" and the POSTGRES_* values
+DJANGO_DATABASE_URL=postgres://user_name:change_the_pass@localhost:5432/db_name
+
+# --- production behind https (optional) -------------------------------------
+# Leave these commented for local and docker test runs over plain http.
+# DJANGO_HTTPS=true enables secure cookies, trusts X-Forwarded-Proto from the proxy, redirects to https.
+#DJANGO_HTTPS=true
+# (with DJANGO_HTTPS, default true) set false when the proxy already redirects http to https
+#DJANGO_SECURE_SSL_REDIRECT=true
+# (with DJANGO_HTTPS, default 0 = off) browsers then refuse plain http to this host for this many seconds;
+# start small (3600), raise (31536000 = 1 year) once the certificate setup is known to stay
+#DJANGO_SECURE_HSTS_SECONDS=3600
+# only needed when form posts fail with a CSRF origin error: the full origin as the browser sees it
+#DJANGO_CSRF_TRUSTED_ORIGINS=https://g2g.example.internal
 
 # --- logging ----------------------------------------------------------------
 # DJANGO_LOGGERS_HANDLERS_APP has NO default in settings.py, it is required.
-# In a container use "console" only; "syslog" needs /dev/log and "file"
-# writes to /tmp inside the container where nobody will look at it.
+# Handlers: "console" and "syslog" (needs /dev/log: the systemd host, not a container;
+# docker compose sets console). Unknown names are ignored with a warning.
 DJANGO_LOGGERS_HANDLERS_APP=console
 DJANGO_LOGGERS_HANDLERS=console
 DJANGO_LOGGERS_HANDLERS_ROOT=console
 DJANGO_LOG_LEVEL=WARNING
-DJANGO_LOG_LEVEL_MAIL=ERROR
 
 # --- LDAP -------------------------------------------------------------------
 LDAP_URL1=ldap://dc1.example.internal
@@ -34,6 +46,16 @@ LDAP_BIND_DN=CN=svc-g2g,OU=Service,DC=example,DC=internal
 LDAP_BIND_PW=change-me
 LDAP_STAFF=CN=g2g-staff,OU=Groups,DC=example,DC=internal
 LDAP_ACTIVE=CN=g2g-users,OU=Groups,DC=example,DC=internal
+# (optional) members are superusers with all rights (and staff); empty: only local superusers.
+# Other users may view; add/change/delete rights come from django groups (see README, Permissions)
+#LDAP_ADMIN=CN=g2g-admins,OU=Groups,DC=example,DC=internal
+# (optional) verify the LDAP server certificate (default true); false only for local testing
+LDAP_TLS_VERIFY=true
+# (optional) CA bundle that includes the CA of the AD certificates; empty: system trust store.
+# In docker the host bundle is mounted on this path (HOST_CA_BUNDLE in compose.yaml)
+LDAP_CA_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+# (optional) DEBUG shows why a login failed; default WARNING
+LDAP_LOG_LEVEL=WARNING
 
 # --- i18n (optional, defaults shown) ----------------------------------------
 DJANGO_LANGUAGE_CODE=en-us

@@ -5,12 +5,9 @@
   </div>
 
   <div class="col-sm-auto">
-      {% if action_clean != "/" %}
-        {% if updating == True or action_clean != "/" %}
-            <a href="/{{ path.0}}/{{path.1}}/add/"> New </a>
-        {% else %}
-            A new {{ action_clean }}
-        {% endif %}
+      {# the New link needs the add permission #}
+      {% if action_clean != "/" and can_add %}
+        <a href="/{{ path.0}}/{{path.1}}/add/"> New </a>
       {% endif %}
   </div>
 

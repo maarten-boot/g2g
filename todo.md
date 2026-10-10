@@ -11,21 +11,26 @@ The items from the former `TODO` file are listed under "Features".
       tested on a fresh stack with new volumes).
 - [x] Do one real LDAP login with a user account (done 2026-10-09; also works with the UPN or mail address).
 - [x] Set `DJANGO_HTTPS=True` (done 2026-10-09 on production).
-- [ ] Optional: `DJANGO_SECURE_HSTS_SECONDS` once https is known to stay (start small, e.g. 3600).
+- [x] `DJANGO_SECURE_HSTS_SECONDS` on production (start small, e.g. 3600, raise later) (2026-10-10).
+      No effect on the docker test stack: only read with `DJANGO_HTTPS`, only sent over https.
 - [ ] If the site is reached on an address nginx doesn't forward as-is, set `DJANGO_CSRF_TRUSTED_ORIGINS`.
 
 ## Secrets and configuration
 
 - [x] `.env.example` holds dummy values only; no `.env` file was ever committed (checked 2026-10-09).
-- [ ] Optional: commit `.env.example` as the template for new setups (change `.gitignore` from `.env*`
-      to `.env` + `!.env.example`). Check its content first: it gets published with the repo.
-- [ ] Two `.env` files hold real secrets: `pSwai/.env` (read by local `manage.py` runs and the systemd
-      deployment, found first by `find_dotenv()`) and the root `.env` (read by docker compose).
-      Keeping them in sync is manual; consider one file, or compose `env_file: pSwai/.env`.
+- [x] `env-example` is committed as the template (placeholders only, checked 2026-10-10).
+- [x] One real settings file, `pSwai/.env`; docker uses a copy next to `compose.yaml`
+      (`make docker_test`) (2026-10-10).
+- [x] Unused keys removed from `pSwai/.env` (mail settings from another project), and dead code:
+      unused templates, the `file` and `mail_admins` log handlers, `do_paging_with_search_filters`,
+      unused parameters, `LOGIN/LOGOUT_REDIRECT_URL` (2026-10-10). Unknown handler names in an
+      older `.env` are ignored with a warning.
 - [x] The `if DJANGO_DEBUG:` block (not valid dotenv syntax) is gone from the `.env` files (2026-10-09).
-- [ ] `.env` logs to `syslog`. That works on the systemd host, but compose overrides it with
-      `console` because the container has no `/dev/log`. Check that this is what you want.
-- [ ] `ENVIRONMENT` is required (production: `PROD`) but nothing reads it yet: use it or drop it.
+- [x] Logging: console (stderr) in docker for development, syslog on the server without docker
+      (decided 2026-10-10). For syslog from docker use the logging driver (`driver: journald`),
+      not a `/dev/log` mount (that breaks silently when the host's log service restarts).
+- [x] `ENVIRONMENT` removed: nothing read it; more logging while developing is `DJANGO_LOG_LEVEL` /
+      `LDAP_LOG_LEVEL=DEBUG` (2026-10-10).
 
 ## Behaviour to decide
 
@@ -34,8 +39,13 @@ The items from the former `TODO` file are listed under "Features".
 - [x] **Clear filters**: the "Cf" button clears the filters of the page (done 2026-10-09).
 - [x] **Date format**: `ymd-His` (e.g. 261010-093015) via `pSwai/pSwai/formats/en/formats.py`
       and `FORMAT_MODULE_PATH` (done 2026-10-10).
-- [ ] **Login permissions**: any logged-in user can add, edit and delete everything.
-      Decide whether to require staff status or per-model permissions.
+- [x] **Login permissions**: view for everyone logged in; add/change/delete per django permission
+      (local groups); `LDAP_ADMIN` members are superusers; AD groups no longer mirrored (2026-10-10).
+- [ ] Set `LDAP_ADMIN` in `pSwai/.env` (local and production) to the AD admin group. Until then only
+      local superusers have all rights; a user that is superuser only locally loses it at login
+      once `LDAP_ADMIN` is set and they are not in that group.
+- [ ] Optional cleanup: the AD groups mirrored before (e.g. 48 for one user) are still django groups with
+      stale memberships; they carry no permissions, so they can be deleted in the admin.
 - [x] **Two login paths**: only `/login/` logs users in; the session ends when the browser
       closes (done 2026-10-09).
 

@@ -31,3 +31,20 @@ class DateFormatTests(SimpleTestCase):
 
         moment = datetime.datetime(2026, 10, 10, 9, 30, 15)
         self.assertEqual(Template("{{ d }}").render(Context({"d": moment})), "261010-093015")
+
+
+class LogHandlerTests(SimpleTestCase):
+    def test_unknown_handlers_from_an_old_env_are_ignored(self):
+        import io
+        import os
+        from contextlib import redirect_stderr
+        from unittest import mock
+
+        from pSwai import settings as project_settings
+
+        with mock.patch.dict(os.environ, {"G2G_TEST_HANDLERS": "console,mail_admins,file"}):
+            err = io.StringIO()
+            with redirect_stderr(err):
+                handlers = project_settings._log_handlers("G2G_TEST_HANDLERS")
+        self.assertEqual(handlers, ["console"])
+        self.assertIn("ignoring unknown log handlers ['mail_admins', 'file']", err.getvalue())

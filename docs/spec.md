@@ -37,7 +37,9 @@ Server → namespace → repo (from the former TODO).
 ## 3. Users and roles
 
 Today: users log in with their AD account; AD group `LDAP_ACTIVE` makes a user active,
-`LDAP_STAFF` makes a user staff (admin site). Every logged-in user can add, edit and delete everything.
+`LDAP_STAFF` makes a user staff (admin site). Every logged-in user may view everything; adding, changing
+and deleting need the django permission per model. Members of `LDAP_ADMIN` are superusers (all rights);
+others get rights through django groups (local, or named like an AD group). See README, Permissions.
 
 ❓ Which roles do we need? Suggestion:
 
@@ -135,3 +137,4 @@ Record decisions here as the ❓ items are answered (date, decision, by whom).
 | 2026-10-09 | a repo is unique on url + branch; an empty branch counts as one value |
 | 2026-10-09 | the unused `Tag` model is removed |
 | 2026-10-09 | all app pages require login; LDAP server certificates are verified |
+| 2026-10-10 | everyone logged in may view; add/change/delete per django permission; `LDAP_ADMIN` members are superusers; AD groups no longer mirrored |
