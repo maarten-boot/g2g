@@ -1,6 +1,9 @@
+import io
 from unittest import mock
 
-from django.contrib.auth.models import User
+import ldap
+from django.contrib.auth.models import Group, Permission, User
+from django.core.management import CommandError, call_command
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from appLogin.backends import LDAPBackend
@@ -100,3 +103,50 @@ class LoginNameTests(SimpleTestCase):
             [("CN=a,DC=example", {"sAMAccountName": [b"a"]}), ("CN=b,DC=example", {"sAMAccountName": [b"b"]})]
         )
         self.assertIsNone(sam)
+
+
+class CleanupAdGroupsTests(TestCase):
+    """cleanup_ad_groups removes groups that are gone from AD, never groups with permissions"""
+
+    def setUp(self):
+        self.in_ad = Group.objects.create(name="still-in-ad")
+        self.gone = Group.objects.create(name="gone-from-ad")
+        self.gone.user_set.add(User.objects.create_user("member", password="not-used"))
+        self.local = Group.objects.create(name="g2g editors")
+        self.local.permissions.add(Permission.objects.get(codename="change_server"))
+
+    def _run(self, *args) -> str:
+        def search(base, scope, flt, attrs) -> list[tuple[str | None, object]]:
+            if "cn=still-in-ad" in flt:
+                return [("CN=still-in-ad,DC=example", {})]
+            return [(None, ["ldap://referral"])]  # not found: AD only returns a referral
+
+        conn = mock.MagicMock()
+        conn.search_s.side_effect = search
+        backend = mock.MagicMock()
+        backend.settings.GROUP_SEARCH.base_dn = "DC=example"
+        backend.service_connection.return_value.__enter__.return_value = conn
+        out = io.StringIO()
+        with mock.patch("appLogin.management.commands.cleanup_ad_groups.LDAPBackend", return_value=backend):
+            call_command("cleanup_ad_groups", *args, stdout=out)
+        return out.getvalue()
+
+    def test_dry_run_deletes_nothing(self):
+        out = self._run()
+        self.assertIn("would delete 'gone-from-ad' (1 members)", out)
+        self.assertIn("keep   'g2g editors'", out)
+        self.assertEqual(Group.objects.count(), 3)
+
+    def test_delete_only_gone_groups_without_permissions(self):
+        self._run("--delete")
+        self.assertEqual(set(Group.objects.values_list("name", flat=True)), {"still-in-ad", "g2g editors"})
+
+    def test_ad_unreachable_changes_nothing(self):
+        backend = mock.MagicMock()
+        backend.service_connection.side_effect = ldap.SERVER_DOWN({"desc": "Can't contact LDAP server"})
+        with (
+            mock.patch("appLogin.management.commands.cleanup_ad_groups.LDAPBackend", return_value=backend),
+            self.assertRaisesRegex(CommandError, "nothing changed"),
+        ):
+            call_command("cleanup_ad_groups", "--delete", stdout=io.StringIO())
+        self.assertEqual(Group.objects.count(), 3)

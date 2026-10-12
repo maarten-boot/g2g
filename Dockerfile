@@ -52,8 +52,10 @@ COPY --chown=app:app docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # STATIC_ROOT is BASE_DIR/static; /var/tmp/django is the FileBasedCache LOCATION
-RUN mkdir -p /app/static /var/tmp/django \
-    && chown -R app:app /app/static /var/tmp/django
+# /var/lib/g2g/runs: Run output and lock files (a volume in compose), private to the app user
+RUN mkdir -p /app/static /var/tmp/django /var/lib/g2g/runs \
+    && chown -R app:app /app/static /var/tmp/django /var/lib/g2g/runs \
+    && chmod 700 /var/lib/g2g/runs
 
 USER app
 EXPOSE 8000

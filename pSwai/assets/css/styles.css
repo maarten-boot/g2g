@@ -3,3 +3,41 @@ input.hidden {
     z-index: -1;
     display: none;
 }
+
+/* collapsible app sections in the left menu (templates/base-nav.html) */
+.nav-app-toggle {
+    border: 0;
+    background: none;
+    font-weight: bold;
+}
+.nav-app-chevron {
+    display: inline-block;
+    transition: transform 0.15s;
+}
+.nav-app-toggle[aria-expanded="true"] .nav-app-chevron {
+    transform: rotate(90deg);
+}
+
+/* very light gray page (left menu, top bar, empty space); the tables and forms with the data stay white */
+body {
+    background-color: #f6f7f9;
+}
+table.index,
+table.form {
+    background-color: #fff;
+}
+
+/* compact list rows: the edit button and the select box no longer make each data row tall */
+table.index > tbody > tr > td {
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+    vertical-align: middle;
+}
+table.index > tbody .btn-sm {
+    padding: 0 0.4rem;
+    line-height: 1.2;
+}
+table.index .form-check-input {
+    margin-top: 0;
+    vertical-align: middle;
+}

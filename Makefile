@@ -53,8 +53,10 @@ check: $(VENV)
 	$(RUFF) check $(CODE)
 	$(MYPY) --ignore-missing-imports --no-incremental $(CODE)
 
-# run the django tests in the web container against the compose postgres, using the local source
-test:
+# the framework-free runner modules with pytest (tests/runner, no django needed), then the django tests in the web
+# container against the compose postgres, using the local source
+test: $(VENV)
+	$(VENV)/bin/pytest -q -p no:cacheprovider
 	docker compose run --rm -T -e RUN_MIGRATIONS=0 -e RUN_COLLECTSTATIC=0 -v ./$(CODE):/app web \
 		python manage.py test --noinput
 

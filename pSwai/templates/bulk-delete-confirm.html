@@ -1,0 +1,30 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<div class="bg-white p-3 border">
+  <h4>Delete {{ objects|length }} {{ model_name }}?</h4>
+  <ul>
+    {% for o in objects %}<li>{{ o }}</li>{% endfor %}
+  </ul>
+
+  {% if also %}
+    <p><b>This also deletes:</b></p>
+    <ul>
+      {% for name, count in also %}<li>{{ count }} {{ name }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if missing %}
+    <p class="text-danger">You may not delete {{ missing|join:", " }}, so nothing is deleted.</p>
+    <a href="{{ index_path }}">Back</a>
+  {% else %}
+    <form method="post" action="{{ index_path }}">
+      {% csrf_token %}
+      {% for o in objects %}<input type="hidden" name="selected" value="{{ o.pk }}">{% endfor %}
+      <input type="hidden" name="bulk_delete" value="1">
+      <button type="submit" name="confirm" value="1" class="btn btn-danger">Delete {{ objects|length }} item{{ objects|length|pluralize }}</button>
+      <a href="{{ index_path }}" class="ms-2">Cancel</a>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

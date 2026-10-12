@@ -24,15 +24,14 @@
           {% for columnName in colNames %}
             <th scope="col" class="col-sm-auto">
               {% if columnName|startswith:'_' %}
-                {% if columnName|startswith:'_D' %}
-                  {# the delete selector column; not used at this time, will become bulk delete #}
+                {% if columnName|startswith:'_D' and can_delete %}
+                  {# select / clear all rows of this page for "Delete selected" #}
                   <input
                     class="form-check-input"
                     type="checkbox"
-                    columnName="action{{action_clean}}"
-                    title="apply delete to all selected items"
-                    value="DELETE_SELECTED"
-                    id="action{{action_clean}}_DELETE_SELECTED"
+                    id="select-all"
+                    title="select all items on this page"
+                    aria-label="select all items on this page"
                   />
                 {% endif %}
                 {% if columnName|startswith:'_E' %}
@@ -110,8 +109,30 @@
       </tbody>
     </table>
 
+    {% if can_delete %}
+      {# enabled once a row is selected; the next page asks for confirmation #}
+      <button type="submit" name="bulk_delete" value="1" id="bulk-delete"
+              class="btn btn-sm btn-outline-danger" disabled>Delete selected</button>
+    {% endif %}
+
     {% include "index-paginate2.html" %}
 
   </form>
 </div>
+{% endif %}
+
+{% if can_delete %}
+<script>
+  // "Delete selected": the header box selects all rows, the button is enabled while a row is selected
+  (function () {
+    const boxes = () => document.querySelectorAll('input[name="selected"]');
+    const button = document.getElementById("bulk-delete");
+    const all = document.getElementById("select-all");
+    function update() {
+      if (button) button.disabled = !Array.from(boxes()).some((b) => b.checked);
+    }
+    if (all) all.addEventListener("change", () => { boxes().forEach((b) => (b.checked = all.checked)); update(); });
+    boxes().forEach((b) => b.addEventListener("change", update));
+  })();
+</script>
 {% endif %}

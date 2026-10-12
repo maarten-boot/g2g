@@ -9,6 +9,7 @@ AUTO_GUI: dict = {
         "RepoPair": "repopair",
         "CopyType": "copytype",
         "Script": "script",
+        "Runs": "run",  # not a model page: the run list (aGit2Git/run_views.py)
     },
     "models": {
         "Server": {
@@ -66,11 +67,13 @@ AUTO_GUI: dict = {
                 "name": "Name",
                 "description": "Description",
                 "repo": "Repository",
+                "allowlist_id": "Allowlist id",
             },
             "filter": {
                 "name": "name",
                 "description": "description",
                 "repo": "repo__name",
+                "allowlist_id": "allowlist_id",
             },
         },
         "CopyType": {

@@ -1,31 +1,42 @@
+{% load startswith %}
 <div class="nav nav-pills flex-sm-column">
     {% for k,v in navigation.items %}
 
         {% if k == "_home" %}
             <div class="nav">
-                {% if k in action_clean %}
+                {% if action_clean == "/" %}
                     <a class="nav-link active" aria-current="true" href="/">Home</a>
                 {% else %}
                     <a class="nav-link" href="/">Home</a>
                 {% endif %}
             </div>
         {% else %}
-            <div class="nav">
-                {% if k in action_clean %}
-                    <a class="nav-link active" aria-current="true"
-                       href="/{{ k }}/" role="button" >{{ k }}</a>
-                {% else %}
-                    <a class="nav-link"
-                       href="/{{ k }}/" role="button" >{{ k }}</a>
-                {% endif %}
-            </div>
+            {# one collapsible section per app: collapsed, except the app you are in #}
+            {% with app_url="/"|add:k|add:"/" %}
+            {% if action_clean|startswith:app_url %}
+                <button class="nav-link nav-app-toggle text-start" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#nav-{{ k }}"
+                        aria-expanded="true" aria-controls="nav-{{ k }}">
+                    <span class="nav-app-chevron" aria-hidden="true">▸</span> {{ k }}
+                </button>
+                <div class="collapse show" id="nav-{{ k }}">
+            {% else %}
+                <button class="nav-link nav-app-toggle text-start" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#nav-{{ k }}"
+                        aria-expanded="false" aria-controls="nav-{{ k }}">
+                    <span class="nav-app-chevron" aria-hidden="true">▸</span> {{ k }}
+                </button>
+                <div class="collapse" id="nav-{{ k }}">
+            {% endif %}
+            {% endwith %}
 
             {% for item in v %}
                 {% if item.label == "_break_" %}
                     <hr>
                 {% else %}
-                    <div class="nav" style="">
-                        {% if action_clean == item.url %}
+                    <div class="nav">
+                        {# also on the item's add/edit/delete pages: /<app>/<model>/... #}
+                        {% if action_clean|startswith:item.url %}
                             &nbsp;<a class="nav-link active" aria-current="true"
                                 href="{{ item.url }}">{{ item.label }}</a>
                         {% else %}
@@ -35,6 +46,7 @@
                     </div>
                 {% endif %}
             {% endfor %}
+                </div>
         {% endif %}
     {% endfor %}
 

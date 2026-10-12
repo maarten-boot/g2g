@@ -1,0 +1,63 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<div class="bg-white p-3 border">
+  {% if busy %}
+    <p class="text-danger">This script is already running: started by {{ run.started_by_name }} at
+      {{ run.started_at|time:"H:i" }}. It can be run again when this run has finished.</p>
+  {% endif %}
+
+  <h4>Run of {{ run.script_id }}</h4>
+  <table class="form">
+    <tr><th>Started by</th><td>{{ run.started_by_name }}</td></tr>
+    <tr><th>Started</th><td>{{ run.started_at }}</td></tr>
+    <tr><th>Finished</th><td>{{ run.finished_at|default_if_none:"" }}</td></tr>
+    <tr><th>Status</th><td id="run-status">{{ run.get_status_display }}{% if run.result %} ({{ run.result }}){% endif %}</td></tr>
+    {% if run.repo_pair %}
+      <tr><th>Repo pair</th><td><a href="/aGit2Git/repopair/edit/{{ run.repo_pair.id }}">{{ run.repo_pair }}</a></td></tr>
+    {% endif %}
+  </table>
+
+  {% if truncated %}<p>Only the end of the output is shown; the download has all of it.</p>{% endif %}
+  {# script output is text, never markup: autoescaped here, textContent in the script below #}
+  <pre id="run-output" class="border p-2 mt-2" style="max-height: 70vh; overflow: auto;">{{ output }}</pre>
+
+  {% if not run.running %}
+    <p><a href="/aGit2Git/run/{{ run.id }}/download">Download the output</a></p>
+  {% endif %}
+</div>
+
+{% if run.running %}
+  {# without javascript: refresh the page while the run is going #}
+  <noscript><meta http-equiv="refresh" content="3"></noscript>
+  <script>
+    // follow the run: fetch new output from the last offset; reload when it has ended, for the final status
+    (function () {
+      let offset = {{ offset }};
+      const out = document.getElementById("run-output");
+      const decoder = new TextDecoder("utf-8");  // stream mode: a character split over two polls stays whole
+      async function poll() {
+        try {
+          const response = await fetch("/aGit2Git/run/{{ run.id }}/output?offset=" + offset, { cache: "no-store" });
+          if (response.ok) {
+            const bytes = await response.arrayBuffer();
+            if (bytes.byteLength) {
+              out.textContent += decoder.decode(bytes, { stream: true });
+              out.scrollTop = out.scrollHeight;
+            }
+            offset = Number(response.headers.get("X-Next-Offset"));
+            if (response.headers.get("X-Run-Status") !== "running" && !bytes.byteLength) {
+              location.reload();
+              return;
+            }
+          }
+        } catch (e) {
+          // a failed poll is retried
+        }
+        setTimeout(poll, 1000);
+      }
+      setTimeout(poll, 1000);
+    })();
+  </script>
+{% endif %}
+{% endblock %}

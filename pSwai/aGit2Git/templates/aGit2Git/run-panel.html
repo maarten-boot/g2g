@@ -1,0 +1,23 @@
+{# the Run part of a Script's or a RepoPair's page: the button (or why there is none) and the last runs #}
+{% if show %}
+<div class="bg-white p-3 border mt-3">
+  <h5>Run</h5>
+  {% if reason %}
+    <p>This cannot be run: {{ reason }}.</p>
+  {% else %}
+    <form method="post" action="{{ action }}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-primary">Run {{ script_id }}</button>
+    </form>
+    {% if runs %}
+      <p class="mt-2 mb-1">Last runs:</p>
+      <ul>
+        {% for run in runs %}
+          <li><a href="/aGit2Git/run/{{ run.id }}">{{ run.started_at }}</a> by {{ run.started_by_name }}:
+            {{ run.get_status_display }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endif %}
+</div>
+{% endif %}

@@ -17,9 +17,19 @@
     <fieldset>
     {% if deleting == True %}
       <div>
-        <b>Are you sure you want to delete this record</b>
-        <input type="hidden" name="delete" value="{{ id }}" />
-        <input type="submit" value="Delete" />
+        {% if also %}
+          <p><b>This also deletes:</b></p>
+          <ul>
+            {% for name, count in also %}<li>{{ count }} {{ name }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        {% if missing %}
+          <p class="text-danger">You may not delete {{ missing|join:", " }}, so nothing is deleted.</p>
+        {% else %}
+          <b>Are you sure you want to delete this record</b>
+          <input type="hidden" name="delete" value="{{ id }}" />
+          <input type="submit" value="Delete" />
+        {% endif %}
       </div>
     {% elif readonly == True %}
       {# no change permission: the item is only shown #}

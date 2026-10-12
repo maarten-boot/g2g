@@ -13,7 +13,8 @@ source ./venv/bin/activate
     ./manage.py makemigrations --check --dry-run
     ./manage.py migrate
 
-    # ./manage.py collectstatic
+    # static files with versioned names (ManifestStaticFilesStorage): needed after every deploy
+    ./manage.py collectstatic --noinput
     # ./manage.py createsuperuser admin
     # ./manage.py runserver --insecure
 )

@@ -3,9 +3,10 @@ from typing import (
     Any,
 )
 
-from django.core.exceptions import FieldDoesNotExist, PermissionDenied
+from django.core.exceptions import FieldDoesNotExist, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.db import models
+from django.db import models, router, transaction
+from django.db.models.deletion import Collector
 from django.shortcuts import (
     get_object_or_404,
     redirect,
@@ -224,6 +225,11 @@ def _start_context(
     return context
 
 
+def page_context(request) -> dict[str, Any]:
+    """The context every page of the layout needs (the menu, the breadcrumb), for views outside the generic ones."""
+    return _start_context({}, "", request)
+
+
 def _get_post_data(request):
     post_data = {}
     if request.method == "POST":
@@ -235,9 +241,14 @@ def _delete_and_redirect(
     model,
     xid,
     full_path,
+    user,
 ):
-    # delete the item named in the url (not an id from the posted data), then back to the index
+    # delete the item named in the url (not an id from the posted data), then back to the index;
+    # also needs the delete permission for what cascades (as the bulk delete)
     instance = get_object_or_404(model, pk=xid)
+    _also, missing = _deletion_summary(model, [instance], user)
+    if missing:
+        raise PermissionDenied
     instance.delete()
     index_path = full_path.split("/delete/")[0] + "/"
     return redirect(index_path)
@@ -355,6 +366,9 @@ def _do_render_form_data(  # pylint:disable=R0917,disable=R0913
         "updating": updating,
         "readonly": readonly,
     } | permissions
+    if deleting and model is not None and xid:
+        # what is deleted along with this item, and what the user may not delete (as the bulk delete)
+        c2["also"], c2["missing"] = _deletion_summary(model, [get_object_or_404(model, pk=xid)], request.user)
 
     context = c1 | c2  # merge the dicts
 
@@ -492,6 +506,7 @@ def _do_delete_item(  # pylint:disable=R0917,disable=R0913
             model,
             xid,
             full_path,
+            request.user,
         )
 
     return _do_render_form_data(
@@ -681,6 +696,71 @@ def make_index_path(
     return index_path
 
 
+BULK_DELETE = "bulk_delete"
+
+
+def _deletion_summary(model: Any, objects: list[Any], user: Any) -> tuple[list[tuple[str, int]], list[str]]:
+    """what deleting these objects also deletes (on_delete=CASCADE), as the admin shows it, and the kinds
+    of items the user may not delete; the selected model itself is not in the counts"""
+    collector = Collector(using=router.db_for_write(model))
+    collector.collect(objects)
+    counts: dict[Any, int] = {}
+    for related_model, instances in collector.data.items():
+        counts[related_model] = counts.get(related_model, 0) + len(instances)
+    for queryset in collector.fast_deletes:
+        counts[queryset.model] = counts.get(queryset.model, 0) + queryset.count()
+
+    # only the kinds of items that are really deleted (a cascade path can have no items)
+    missing = sorted(
+        str(m._meta.verbose_name_plural) for m, n in counts.items() if n and not user.has_perm(_perm(m, "delete"))
+    )
+    also = sorted((str(m._meta.verbose_name_plural), n) for m, n in counts.items() if m is not model and n)
+    return also, missing
+
+
+def _handle_bulk_delete(
+    request: Any,
+    model: Any,
+    index_path: str,
+    autogui_dict: dict[str, Any],
+    app_name: str,
+) -> Any:
+    """the "Delete selected" button of a list: first a confirmation page with what will be deleted (also by
+    cascade), then the delete. None when this request is not a bulk delete."""
+    if request.method != "POST" or BULK_DELETE not in request.POST:
+        return None
+    if not request.user.has_perm(_perm(model, "delete")):
+        raise PermissionDenied
+
+    ids = []
+    for value in request.POST.getlist("selected"):
+        try:
+            ids.append(model._meta.pk.to_python(value))
+        except ValidationError:
+            continue  # not an id: ignore
+    objects = list(model.objects.filter(pk__in=ids))
+    if not objects:
+        return redirect(index_path)
+
+    also, missing = _deletion_summary(model, objects, request.user)
+    if "confirm" in request.POST:
+        if missing:
+            raise PermissionDenied
+        with transaction.atomic():
+            model.objects.filter(pk__in=[o.pk for o in objects]).delete()
+        logger.info("%s deleted %d %s", request.user, len(objects), model._meta.verbose_name_plural)
+        return redirect(index_path)
+
+    context = _start_context(autogui_dict, app_name, request) | {
+        "objects": objects,
+        "model_name": model._meta.verbose_name if len(objects) == 1 else model._meta.verbose_name_plural,
+        "also": also,
+        "missing": missing,
+        "index_path": index_path,
+    }
+    return render(request, "bulk-delete-confirm.html", context)
+
+
 def generic_index(  # pylint:disable= R0914
     autogui_dict,
     app_name,
@@ -714,6 +794,9 @@ def generic_index(  # pylint:disable= R0914
         action_redirect = _handle_index_actions(request, index_path, field_names)
         if action_redirect is not None:
             return action_redirect
+        bulk_response = _handle_bulk_delete(request, model, index_path, autogui_dict, app_name)
+        if bulk_response is not None:
+            return bulk_response
 
     post_data = _get_post_data(request)
     per_page = do_per_page(
@@ -766,6 +849,9 @@ def generic_index(  # pylint:disable= R0914
             index_path,
             page_obj,  # the one page we will show
         )
+        if not _model_permissions(request, model)["can_delete"]:
+            for row in page_data:
+                row["_D"] = ""  # no selection boxes without the delete permission
 
     # ---- prepare for display
     c1 = _start_context(

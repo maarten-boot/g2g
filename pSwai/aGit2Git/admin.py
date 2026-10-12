@@ -5,6 +5,7 @@ from django.contrib import admin
 from aGit2Git.models import CopyType as _CopyType
 from aGit2Git.models import Repo as _Repo
 from aGit2Git.models import RepoPair as _RepoPair
+from aGit2Git.models import Run as _Run
 from aGit2Git.models import Script as _Script
 
 # from django.contrib.admin.views.main import ChangeList
@@ -97,3 +98,19 @@ class Script(admin.ModelAdmin):  # pylint:disable=E0102
     list_per_page = LIST_PER_PAGE
     search_fields = ("name",)
     list_filter = ("updStamp",)
+
+
+@admin.register(_Run)
+class Run(admin.ModelAdmin):  # pylint:disable=E0102
+    """Run records are history: read only here (docs/run-design.md)."""
+
+    list_display = ("script_id", "started_by_name", "started_at", "status", "result", "repo_pair")
+    list_per_page = LIST_PER_PAGE
+    search_fields = ("script_id", "started_by_name")
+    list_filter = ("status", "started_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

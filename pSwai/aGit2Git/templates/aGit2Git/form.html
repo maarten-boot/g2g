@@ -1,3 +1,8 @@
 {% extends "base_generic.html" %}
+{% load runs %}
 
-
+{% block content %}
+{{ block.super }}
+{# on a Script's page: its Run button and last runs (nothing for other models, or when Run is off) #}
+{% if form != None and request.user.is_authenticated %}{% run_panel form.instance %}{% endif %}
+{% endblock %}

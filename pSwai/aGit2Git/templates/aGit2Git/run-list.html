@@ -1,0 +1,40 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<div>
+  {% for message in messages %}
+    <p class="{% if message.tags == 'error' %}text-danger{% elif message.tags == 'warning' %}text-warning{% else %}text-success{% endif %}">{{ message }}</p>
+  {% endfor %}
+  {# re-read the allowlist after an administrator changed it; the previous one stays when the new one is invalid #}
+  <form method="post" action="/aGit2Git/run/reload" class="mb-2">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Reload the allowlist</button>
+  </form>
+  <table class="index table table-sm table-hover table-bordered">
+    <thead>
+      <tr><th>Started</th><th>Script</th><th>Repo pair</th><th>By</th><th>Status</th><th>Finished</th></tr>
+    </thead>
+    <tbody class="table-group-divider">
+      {% for run in runs %}
+        <tr>
+          <td><a href="/aGit2Git/run/{{ run.id }}">{{ run.started_at }}</a></td>
+          <td>{{ run.script_id }}</td>
+          <td>{% if run.repo_pair %}<a href="/aGit2Git/repopair/edit/{{ run.repo_pair.id }}">{{ run.repo_pair }}</a>{% endif %}</td>
+          <td>{{ run.started_by_name }}</td>
+          <td>{{ run.get_status_display }}</td>
+          <td>{{ run.finished_at|default_if_none:"" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">No runs yet (of the scripts you may run).</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if page_obj.has_other_pages %}
+    <div>
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}">&lt; newer</a>{% endif %}
+      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}">older &gt;</a>{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

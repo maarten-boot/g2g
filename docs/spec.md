@@ -60,6 +60,9 @@ others get rights through django groups (local, or named like an AD group). See 
 
 ## 4. Copying (planned: `Run`)
 
+The design for this is in [run-design.md](run-design.md) (decided 2026-10-11: a Run button on repo pairs,
+scripts from a read-only allowlist file, no arguments, run records in the database for 3 months).
+
 A **run** is one execution of a copy for one repo pair.
 
 ### 4.1 Trigger
@@ -141,5 +144,6 @@ Record decisions here as the ❓ items are answered (date, decision, by whom).
 | 2026-10-09 | a repo is unique on url + branch; an empty branch counts as one value |
 | 2026-10-09 | the unused `Tag` model is removed |
 | 2026-10-09 | all app pages require login; LDAP server certificates are verified |
+| 2026-10-11 | Run: design in run-design.md — allowlist file, no script arguments, run records in the database (3 months), thread in the web process, Run button on repo pairs |
 | 2026-10-10 | components/features moved to their own app `aComponents` (migrations keep the data) |
 | 2026-10-10 | everyone logged in may view; add/change/delete per django permission; `LDAP_ADMIN` members are superusers; AD groups no longer mirrored |

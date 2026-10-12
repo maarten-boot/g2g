@@ -46,8 +46,15 @@ services:
       DJANGO_LOGGERS_HANDLERS: console
       DJANGO_LOGGERS_HANDLERS_ROOT: console
       DJANGO_LOGGERS_HANDLERS_APP: console
+      # Run (docs/run-design.md): off in docker unless DOCKER_RUNNER_ALLOWLIST is set (e.g. /runner/scripts.toml);
+      # the paths in pSwai/.env are for the server without docker
+      RUNNER_ALLOWLIST: ${DOCKER_RUNNER_ALLOWLIST:-}
+      RUNNER_RUNS_DIR: ${DOCKER_RUNNER_ALLOWLIST:+/var/lib/g2g/runs}
     volumes:
       - static:/app/static
+      # the allowlist and the scripts, read only; run output and lock files in their own volume
+      - ./runner:/runner:ro
+      - runs:/var/lib/g2g/runs
       # the host's CA bundle (public + internal CAs, e.g. the one that signed the AD certificates)
       # on the same path, so LDAP_CA_CERT_FILE in .env works the same on the host and in the container.
       # override with HOST_CA_BUNDLE when the host keeps it elsewhere (e.g. /etc/pki/tls/certs/ca-bundle.crt)
@@ -73,3 +80,4 @@ services:
 volumes:
   pgdata:
   static:
+  runs:

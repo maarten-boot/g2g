@@ -22,4 +22,9 @@ docker/dump/
 prep.sh
 reformat.sh
 todo.md
+
+# the Run allowlist and scripts are mounted at deploy time, never built in; the pytest suite is not needed
+runner/
+tests/
+done.md
 README.md

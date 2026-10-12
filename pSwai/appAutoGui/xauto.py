@@ -7,6 +7,7 @@ from typing import (
 )
 
 from django.apps import apps
+from django.db import models
 from django.forms import modelform_factory
 from django.template import (
     Context,
@@ -71,16 +72,17 @@ def _mk_index_delete_link(
         a delete of an item
             by its primary key
     """
+    # the bulk delete selection: name "selected", value the item's primary key
     zz = [
         "<input",
         " class='form-check-input'",
         " type='checkbox'",
-        f" value='{pk}'",
-        " name='action{{ action_clean }}'",
-        " id='action{{ action_clean }}{{ " + f"{pk}" + "}}'",
+        " name='selected'",
+        " value='{{ " + f"{pk}" + " }}'",
+        " aria-label='select'",
         ">",
     ]
-    return " ".join(zz)
+    return "".join(zz)
 
 
 def _mk_index_edit_link(
@@ -110,23 +112,71 @@ def _mk_index_edit_link(
 def _default_index_field_template(
     name,
 ):
-    return "{{ " + f"{name}" + " }}"
+    # an empty value (None) is an empty cell, not the text "None"
+    return "{{ " + f"{name}" + '|default_if_none:"" }}'
+
+
+def _foreign_key_index_field_template(
+    name: str,
+) -> str:
+    """a foreign key cell: a link to the related item's page (<name>_url), empty when there is none"""
+    return (
+        "{% if "
+        + f"{name}_url"
+        + " %}"
+        + '<a href="{{ '
+        + f"{name}_url"
+        + ' }}">{{ '
+        + name
+        + " }}</a>"
+        + "{% else %}{{ "
+        + name
+        + '|default_if_none:"" }}{% endif %}'
+    )
+
+
+def _external_link_index_field_template(
+    name: str,
+) -> str:
+    """a url cell: a link that opens in a new tab (<name>_href, only set for http/https), else plain text"""
+    return (
+        "{% if "
+        + f"{name}_href"
+        + " %}"
+        + '<a href="{{ '
+        + f"{name}_href"
+        + ' }}" target="_blank" rel="noopener noreferrer">{{ '
+        + name
+        + " }}</a>"
+        + "{% else %}{{ "
+        + name
+        + '|default_if_none:"" }}{% endif %}'
+    )
 
 
 def _add_index_fields(
     i_fields: dict[str, Any],  # by ref so in and out
     model_fields: dict[str, str],
     skip_list: list[str],
+    foreign_keys: set[str] | None = None,
+    url_fields: set[str] | None = None,
 ) -> None:
     if model_fields:
         for k, v in model_fields.items():
             if k in skip_list:
                 continue
-            i_fields[v] = _default_index_field_template(k)
+            if foreign_keys and k in foreign_keys:
+                i_fields[v] = _foreign_key_index_field_template(k)
+            elif url_fields and k in url_fields:
+                i_fields[v] = _external_link_index_field_template(k)
+            else:
+                i_fields[v] = _default_index_field_template(k)
 
 
 def _add_default_index_fields(
     model_fields: dict[str, str],
+    foreign_keys: set[str] | None = None,
+    url_fields: set[str] | None = None,
 ) -> dict[str, Any]:
     """
     Add extra columns for Delete: _D and Edit: _E
@@ -139,8 +189,46 @@ def _add_default_index_fields(
         i_fields=i_fields,
         model_fields=model_fields,
         skip_list=[],
+        foreign_keys=foreign_keys,
+        url_fields=url_fields,
     )
     return i_fields
+
+
+def _foreign_key_names(model: Any, field_names) -> set[str]:
+    return {f.name for f in model._meta.get_fields() if f.many_to_one and f.name in field_names}
+
+
+def _url_field_names(model: Any, field_names) -> set[str]:
+    return {f.name for f in model._meta.get_fields() if isinstance(f, models.URLField) and f.name in field_names}
+
+
+def _external_href(value: Any) -> str | None:
+    """only http(s) urls become links: a value from a restored dump never passed the form validation,
+    and e.g. a javascript: url must not become clickable"""
+    if isinstance(value, str) and value.lower().startswith(("http://", "https://")):
+        return value
+    return None
+
+
+@functools.lru_cache(maxsize=128)
+def _nav_name(app_label: str, model_name: str) -> str | None:
+    """the nav name of a model in its app's autoGui (None: the model has no pages)"""
+    if app_label not in get_known_apps():
+        return None
+    autogui_dict = _import_item(f"{app_label}.autoGui.AUTO_GUI")
+    nav = get_model_data_from_autogui(autogui_dict, model_name).get("nav")
+    return str(nav) if nav else None
+
+
+def edit_url(obj: Any) -> str | None:
+    """the page of an item (edit, or read only without the change permission), also in another app"""
+    if obj is None:
+        return None
+    nav = _nav_name(obj._meta.app_label, obj.__class__.__name__)
+    if nav is None:
+        return None
+    return f"/{obj._meta.app_label}/{nav}/edit/{obj.pk}"
 
 
 def _get_nav_names(
@@ -187,6 +275,8 @@ def _get_my_index_fields(
             if index_path.startswith(f"/{app_name}/{name}/"):
                 return _add_default_index_fields(
                     model_fields,
+                    _foreign_key_names(model, model_fields),
+                    _url_field_names(model, model_fields),
                 )
 
     return {}
@@ -210,8 +300,14 @@ def _make_fields_dict_from_model(
         model_name,
     )
     fields = p.get("fields", {})
+    foreign_keys = _foreign_key_names(instance.__class__, fields)
+    url_fields = _url_field_names(instance.__class__, fields)
     for name in fields.keys():
         ret[name] = getattr(instance, name)
+        if name in foreign_keys:
+            ret[f"{name}_url"] = edit_url(ret[name])
+        elif name in url_fields:
+            ret[f"{name}_href"] = _external_href(ret[name])
 
     return ret
 

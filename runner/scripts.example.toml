@@ -1,0 +1,82 @@
+# ============================================================================================================
+# The g2g Run allowlist: the scripts that exist, and who may run each one (docs/run-design.md).
+# Copy to scripts.toml; RUNNER_ALLOWLIST in pSwai/.env points at it.
+#
+# HOW TOML READS THIS FILE: every key belongs to the [section] header ABOVE it, until the next header. So a key
+# written under [groups] is part of [groups], even if it was meant for [settings]. Keep each block together,
+# and put a new header before you start the next kind of setting. The indentation below is only for the eye;
+# TOML ignores it.
+#
+# WHAT GOES WHERE
+#   [settings]        where script files live, which directories they may come from, which other files to read
+#   [groups]          short names for LDAP group DNs, so the scripts need not repeat them
+#   [defaults]        what every script gets unless it says otherwise: groups, timeout, description
+#   [profiles.<name>] the same three settings, under a name a script can point at with profile = "<name>"
+#   [scripts.<id>]    one per script: name, description, file, groups, timeout, profile
+#
+# Everything here is trusted: keep this file owned by root and read-only for the service user.
+# ============================================================================================================
+
+[settings]
+    # Where the script files live. Relative to this file. Keep it read-only for the service user.
+    scripts_dir = "scripts"
+
+    # Scripts may be symlinks. What a link POINTS AT must be inside scripts_dir, or inside one of these.
+    # Everything in them is as trusted as scripts_dir itself: root-owned, not writable by the service user.
+    # allow_dirs = ["/opt/g2g/bin", "../checkout"]
+
+    # Further files holding scripts (glob patterns allowed). Such a file may hold [scripts.<id>] tables and its
+    # own [defaults], and nothing else - so administrators can edit those files without touching anything here.
+    # Naming a file after a group, and setting that group once in its [defaults], keeps the scripts short.
+    # include = ["scripts-enabled/*.toml"]
+
+
+# Short names for the LDAP groups. A script's groups may use a name from here, a DN written out in full,
+# or local:<name> for a django group (see the bottom of this file).
+[groups]
+    runners = "cn=script-runners,ou=groups,dc=example,dc=com"
+    admins = "cn=g2g-admins,ou=groups,dc=example,dc=com"
+
+# What every script gets unless it says otherwise. Only groups, timeout and description belong here.
+[defaults]
+    groups = ["runners"]    # a user needs ANY of the groups listed
+    timeout = 300           # seconds, 1..3600
+
+# A named set for scripts that share more than the defaults. A script opts in with profile = "nightly".
+[profiles.nightly]
+    description = "part of the nightly sync"
+    timeout = 1800
+
+# ------------------------------------------------------------------------------------------------------------
+# The scripts themselves. One [scripts.<id>] block each; the id is what appears in the URL.
+# A script's own settings win over its profile, which wins over [defaults].
+# ------------------------------------------------------------------------------------------------------------
+
+[scripts.hello]
+    name = "Hello"                                   # what the page shows
+    description = "Example script that prints a few lines"
+    file = "hello.sh"                                # inside scripts_dir, run with bash, no arguments
+    timeout = 60                                     # overrides the default
+
+[scripts.nightly-sync]
+    name = "Nightly sync"
+    file = "hello.sh"
+    profile = "nightly"                              # takes the timeout and description from [profiles.nightly]
+
+[scripts.admin-only]
+    name = "Admin only"
+    file = "hello.sh"
+    groups = ["admins"]                              # REPLACES the default groups, it does not add to them
+
+# ------------------------------------------------------------------------------------------------------------
+# Local groups (optional): a django group, managed in the g2g admin, for when waiting for a new LDAP group would
+# take too long. A script may use one with the "local:" prefix, only in THIS file, never in an included one:
+#
+#     [scripts.hotfix]
+#         name = "Hotfix"
+#         file = "hotfix.sh"
+#         groups = ["admins", "local:g2g hotfix"]    # the admins LDAP group, plus the members of that django group
+#
+# Users still log in through LDAP; only the permission comes from the django group, and such a run is logged as
+# "through a local django group, not through LDAP".
+# ------------------------------------------------------------------------------------------------------------

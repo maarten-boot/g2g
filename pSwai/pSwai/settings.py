@@ -243,6 +243,20 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "assets"),
 ]
 
+# collectstatic gives every static file a name with its content hash (css/styles.3f2a9c1d.css) and the pages use
+# that name: a changed file gets a new URL, so browsers never keep an old version from their cache (nginx lets
+# them cache static files for 7 days). This needs collectstatic after every deploy, else the pages fail.
+# Tests run without collectstatic, so they use the plain storage.
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        if TESTING
+        else "pSwai.storage.VersionedStaticFilesStorage"  # also versioned with DEBUG on
+    },
+}
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -330,3 +344,10 @@ class CustomFormRenderer(TemplatesSetting):
 FORM_RENDERER = "pSwai.settings.CustomFormRenderer"
 
 LOGIN_URL = "login"
+
+# Run: starting allowlisted scripts (docs/run-design.md). Both empty: Run is switched off.
+# RUNNER_ALLOWLIST: the TOML allowlist (root-owned, read-only for the service); RUNNER_RUNS_DIR: run output and the
+# per-script lock files (private to the service user, on a local file system: the locks use flock).
+RUNNER_ALLOWLIST = env.str("RUNNER_ALLOWLIST", default="")
+RUNNER_RUNS_DIR = env.str("RUNNER_RUNS_DIR", default="")
+RUN_HISTORY_DAYS = env.int("RUN_HISTORY_DAYS", default=90)  # run records older than this are deleted

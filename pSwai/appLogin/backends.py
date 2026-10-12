@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 import django_auth_ldap.backend
 import ldap
@@ -36,12 +38,10 @@ class LDAPBackend(django_auth_ldap.backend.LDAPBackend):
         logger.debug("login name %s is sAMAccountName %s", login_name, sam)
         return sam
 
-    def _lookup_sam_account_name(self, login_name: str) -> str | None:
-        """search the directory with the service account; None when not exactly one user matches"""
-        value = escape_filter_chars(login_name)
-        alternatives = "".join(f"({attr}={value})" for attr in LOGIN_NAME_ATTRS)
-        search_filter = f"(&(objectClass=user)(|{alternatives}))"
-
+    @contextmanager
+    def service_connection(self) -> Iterator[ldap.ldapobject.LDAPObject]:
+        """a connection bound with the service account (AUTH_LDAP_BIND_DN), with the same TLS settings as
+        the login; raises ldap.LDAPError when the directory cannot be reached"""
         conn = None
         try:
             # self.ldap applies AUTH_LDAP_GLOBAL_OPTIONS (TLS verification, CA file) on first use
@@ -51,18 +51,28 @@ class LDAPBackend(django_auth_ldap.backend.LDAPBackend):
             if self.settings.START_TLS:
                 conn.start_tls_s()
             conn.simple_bind_s(self.settings.BIND_DN, self.settings.BIND_PASSWORD)
-            results = conn.search_s(
-                self.settings.USER_SEARCH.base_dn,
-                ldap.SCOPE_SUBTREE,
-                search_filter,
-                ["sAMAccountName"],
-            )
-        except ldap.LDAPError as e:
-            logger.warning("LDAP lookup of login name %s failed: %s", login_name, e)
-            return None
+            yield conn
         finally:
             if conn is not None:
                 conn.unbind_s()
+
+    def _lookup_sam_account_name(self, login_name: str) -> str | None:
+        """search the directory with the service account; None when not exactly one user matches"""
+        value = escape_filter_chars(login_name)
+        alternatives = "".join(f"({attr}={value})" for attr in LOGIN_NAME_ATTRS)
+        search_filter = f"(&(objectClass=user)(|{alternatives}))"
+
+        try:
+            with self.service_connection() as conn:
+                results = conn.search_s(
+                    self.settings.USER_SEARCH.base_dn,
+                    ldap.SCOPE_SUBTREE,
+                    search_filter,
+                    ["sAMAccountName"],
+                )
+        except ldap.LDAPError as e:
+            logger.warning("LDAP lookup of login name %s failed: %s", login_name, e)
+            return None
 
         users = [attrs for dn, attrs in results if dn]  # skip AD referrals (dn None)
         if len(users) != 1:
